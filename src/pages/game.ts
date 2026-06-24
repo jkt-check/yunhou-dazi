@@ -10,7 +10,7 @@ import { startRenderer } from '@/render/renderer';
 import { createHUD } from '@/ui/hud';
 import { showToast } from '@/ui/components/modal';
 import { checkAchievements, getAllRules } from '@/achievements/engine';
-import { gameStore, achievementsStore } from '@/store';
+import { gameStore, achievementsStore, settingsStore } from '@/store';
 import { audio } from '@/audio/audioEngine';
 
 let registered = false;
@@ -35,6 +35,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     return () => {};
   }
 
+  const showVkb = settingsStore.get().showVirtualKeyboard;
   root.innerHTML = `
     <main class="page-game">
       <div class="game-header">
@@ -44,13 +45,13 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
       </div>
       <div class="hud-mount"></div>
       <div class="canvas-mount"></div>
-      <div class="vkb-mount"></div>
+      ${showVkb ? '<div class="vkb-mount"></div>' : ''}
     </main>
   `;
 
   const hudMount = root.querySelector('.hud-mount') as HTMLElement;
   const canvasMount = root.querySelector('.canvas-mount') as HTMLElement;
-  const vkbMount = root.querySelector('.vkb-mount') as HTMLElement;
+  const vkbMount = root.querySelector('.vkb-mount') as HTMLElement | null;
 
   const hud = createHUD(hudMount);
   const gameCanvas = createGameCanvas(canvasMount);
@@ -58,7 +59,9 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const renderer = startRenderer({ canvas: gameCanvas, scene });
 
   const engine = new GameEngine({ scene, bus, level });
-  const input = setupInput(engine, vkbMount);
+  const input = vkbMount
+    ? setupInput(engine, vkbMount)
+    : { unbind: () => {}, unsub: () => {} };
 
   // Result modal
   function showResultModal(title: string, bodyHTML: string) {
@@ -80,15 +83,34 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   }
 
   // Audio wiring
-  bus.on('mole:hit', () => {
-    audio.resume();
-    audio.hit();
-    if (gameStore.get().combo >= 10) audio.combo();
-  });
-  bus.on('mole:miss', () => { audio.resume(); audio.miss(); });
-  bus.on('achievement:unlocked', () => { audio.resume(); audio.unlock(); });
-  bus.on('level:complete', () => { audio.resume(); audio.win(); });
-  bus.on('level:fail', () => { audio.resume(); audio.lose(); });
+  const audioHandlers = [
+    bus.on('mole:hit', () => {
+      if (!settingsStore.get().sfxEnabled) return;
+      audio.resume();
+      audio.hit();
+      if (gameStore.get().combo >= 10) audio.combo();
+    }),
+    bus.on('mole:miss', () => {
+      if (!settingsStore.get().sfxEnabled) return;
+      audio.resume();
+      audio.miss();
+    }),
+    bus.on('achievement:unlocked', () => {
+      if (!settingsStore.get().sfxEnabled) return;
+      audio.resume();
+      audio.unlock();
+    }),
+    bus.on('level:complete', () => {
+      if (!settingsStore.get().sfxEnabled) return;
+      audio.resume();
+      audio.win();
+    }),
+    bus.on('level:fail', () => {
+      if (!settingsStore.get().sfxEnabled) return;
+      audio.resume();
+      audio.lose();
+    })
+  ];
 
   const unsubBus = bus.on('level:complete', (e) => {
     showResultModal('🎉 通关', `
@@ -153,6 +175,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     unsubBus();
     unsubBus2();
     unsubAch();
+    audioHandlers.forEach(unsub => unsub());
     gameCanvas.destroy();
   };
 }

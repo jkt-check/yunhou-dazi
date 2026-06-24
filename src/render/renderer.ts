@@ -55,7 +55,11 @@ export function startRenderer(opts: RendererOpts): () => void {
     };
   }
 
+  let rafId: number | null = null;
+  let stopped = false;
+
   function frame() {
+    if (stopped) return;
     const state = gameStore.get();
     const w = el.clientWidth;
     const h = el.clientHeight;
@@ -63,13 +67,11 @@ export function startRenderer(opts: RendererOpts): () => void {
 
     drawBackground(ctx, w, 0, h);
 
-    // Draw holes
     for (let i = 0; i < HOLES; i++) {
       const { x, y } = getHolePos(i, w, h);
       drawHole(ctx, x, y);
     }
 
-    // Draw moles
     for (const m of state.activeMoles) {
       const { x, y } = getHolePos(m.holeIndex, w, h);
       const age = performance.now() - m.appearAt;
@@ -81,20 +83,22 @@ export function startRenderer(opts: RendererOpts): () => void {
       const yOffset = (1 - progress) * 40;
       drawMole(ctx, x, y + yOffset, progress, m.state === 'hit');
 
-      // Render the key on top of the mole (seal/chop style)
       if (m.state === 'rising' || m.state === 'active') {
         scene.renderKey(ctx, m.key, x, y - 50);
       }
     }
 
-    // Draw monkey (slightly left of center, above ground)
     const swinging = swing && (performance.now() - lastSwingAt) < 300;
     drawMonkey(ctx, w * 0.18, h * 0.22, swinging);
 
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
 
-  frame();
+  rafId = requestAnimationFrame(frame);
 
-  return () => { unsub(); };
+  return () => {
+    stopped = true;
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    unsub();
+  };
 }
