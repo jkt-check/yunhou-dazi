@@ -14,3 +14,13 @@ export interface Scene {
   matches(input: string[], target: string): boolean;
   getDifficultyMultiplier(): number;
 }
+
+export const scenes: Record<string, Scene> = {};
+
+export function registerScene(scene: Scene) {
+  scenes[scene.id] = scene;
+}
+
+export function getScene(id: string): Scene | undefined {
+  return scenes[id];
+}
