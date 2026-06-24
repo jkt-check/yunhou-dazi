@@ -1,0 +1,36 @@
+:root {
+  /* Colors */
+  --color-primary: #FFB347;
+  --color-secondary: #6BCB77;
+  --color-accent: #FF6B6B;
+  --color-sky-top: #87CEEB;
+  --color-sky-bottom: #FFB6C1;
+  --color-earth: #8B4513;
+  --color-text: #3D2914;
+  --color-text-muted: #7A5C3F;
+  --color-surface: #FFF8E7;
+  --color-success: #6BCB77;
+  --color-error: #FF6B6B;
+
+  /* Badge colors */
+  --color-bronze: #CD7F32;
+  --color-silver: #C0C0C0;
+  --color-gold:   #FFD700;
+  --color-diamond:#B9F2FF;
+
+  /* Fonts */
+  --font-display: 'Baloo 2', 'Comic Sans MS', system-ui;
+  --font-ui: 'Nunito', system-ui, sans-serif;
+  --font-key: 'JetBrains Mono', 'Menlo', monospace;
+
+  /* Spacing */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px;
+  --space-4: 16px; --space-5: 24px; --space-6: 32px;
+
+  /* Radius */
+  --radius-sm: 6px; --radius-md: 12px; --radius-lg: 24px;
+
+  /* Shadow */
+  --shadow-soft: 0 4px 12px rgba(0,0,0,0.15);
+  --shadow-strong: 0 8px 24px rgba(0,0,0,0.25);
+}

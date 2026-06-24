@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import './reset.css';
+@import './variables.css';
+@import './animations.css';
+
+body {
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  background: linear-gradient(180deg, var(--color-sky-top), var(--color-sky-bottom));
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#app { min-height: 100vh; display: flex; flex-direction: column; }
