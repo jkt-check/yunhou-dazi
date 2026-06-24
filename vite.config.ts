@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { existsSync } from 'fs';
 
 export default defineConfig({
   resolve: {
@@ -7,7 +8,16 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: existsSync('./src/audio/audioEngine.ts')
+      ? {
+          output: {
+            manualChunks: {
+              audio: ['./src/audio/audioEngine.ts']
+            }
+          }
+        }
+      : undefined
   },
   test: {
     environment: 'happy-dom',
