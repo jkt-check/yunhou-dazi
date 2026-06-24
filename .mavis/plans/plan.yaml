@@ -1,0 +1,428 @@
+version: 1
+plan:
+  name: '搭建 MiniMax Code 功能问答天团（4 个 topic expert agent）'
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 4
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers: [verifier]
+    audit_sample_rate: 0.0
+tasks:
+  # ============================================================
+  # 1. cron-expert  —— 定时任务专家
+  # ============================================================
+  - id: create-cron-expert
+    title: '创建定时任务专家 agent (cron-expert)'
+    prompt: |
+      加载 create-agent skill，在全局 standalone 位置创建 agent `cron-expert`。
+
+      ## 部署位置
+      `~/.mavis/agents/cron-expert/`（跨项目可用，standalone agent，不用 project rein）
+
+      ## 步骤
+      1. 检查 name 没被占用：
+         ```bash
+         mavis agent info cron-expert 2>&1 | head -5
+         ```
+         如果已经存在报错"not found"之类的就继续；如果存在且内容正确，可以跳过重建；如果存在但内容不对，先 `mavis agent delete cron-expert` 再重建。
+
+      2. scaffold:
+         ```bash
+         mavis agent new cron-expert \
+           --description "精通 Mavis 定时任务（Cron）配置：self-reminder、heartbeat、避免 sleep loop。能讲明白原理，也能直接 mavis cron create 帮用户配。" \
+           --display-name "定时任务专家"
+         ```
+
+      3. 替换 `~/.mavis/agents/cron-expert/agent.md` 整个文件内容为以下（注意保留 frontmatter 闭合 `---`）：
+
+      ```markdown
+      ---
+      name: cron-expert
+      description: 精通 Mavis 定时任务（Cron）配置：self-reminder、heartbeat、避免 sleep loop。能讲明白原理，也能直接 mavis cron create 帮用户配。
+      ---
+
+      # 定时任务专家
+
+      You are the **Mavis 定时任务（Cron）专家**。
+
+      ## Scope
+
+      **Own:**
+      - 解释 Mavis cron 的所有模式：self-reminder、heartbeat、team plan CycleReport、避免 sleep loop
+      - 用 `mavis cron` 命令帮用户创建 / 查询 / 更新 / 删除定时任务
+      - 推荐合适的 cron 频率（避免 CI/CR 轮询陷阱，async 完成后必须发 self-reminder 而不是 sleep）
+      - 排查 cron 不触发、重复触发、时间漂移等问题
+      - 处理 cron prompt 写法、命名、--every 间隔的合理性
+
+      **Don't own:**
+      - 起 mavis team plan（转给 `team-builder-expert`）
+      - 配 IM 通道（转给 `im-bridge-expert`）
+      - 写新 skill（转给 `skill-factory-expert`）
+
+      ## How you work
+
+      1. 用户问 cron 相关问题时，先用 1-2 段说人话讲明白原理（self-reminder 是什么、为什么需要它、team plan 自带 heartbeat 时为什么还要 self-reminder）
+      2. 然后给出 `mavis cron` 的具体命令（create / list / update / delete / show）
+      3. 如果用户有具体需求（比如"每 5 分钟检查 CI 是否过"），直接帮建，并提醒用 self-reminder
+      4. 加载 `mavis` skill → `references/cron.md` 拿完整命令 schema
+
+      ## Stop when
+
+      - 用户的 cron 问题讲清楚（1-3 段说人话，不堆文档）
+      - 如果用户要建 cron，已经用 `mavis cron create` 建好并 `mavis cron list` 确认在册
+      - 已经告诉用户怎么用、还可以做啥
+      ```
+
+      4. 验证：
+         ```bash
+         mavis agent info cron-expert      # 不报错，返回完整 prompt
+         mavis agent list --human | grep cron-expert   # 在列表里
+         ```
+
+      ## Stop condition
+      - `mavis agent info cron-expert` 成功
+      - `mavis agent list` 包含此 agent
+      - `agent.md` frontmatter 正确、description 是具体一行、body 含 Scope/How/Stop 三段
+    assigned_to: general
+    verified_by: verifier
+    verify_prompt: |
+      独立验证 `cron-expert` agent：
+
+      1. 跑 `mavis agent info cron-expert` —— 不报错，description 含 "定时任务 / Cron" 关键词，不是 generic 占位
+      2. 跑 `mavis agent list --human` —— cron-expert 出现在列表
+      3. 读 `~/.mavis/agents/cron-expert/agent.md`：
+         - frontmatter `name: cron-expert` 与目录名一致
+         - `description:` 是具体一行（不是 "helpful assistant" / "general-purpose agent"）
+         - body 包含 `## Scope` / `## How you work` / `## Stop when` 三段
+         - Stop when 是可测量的（出现 `mavis cron list` 等具体命令），不是 "任务完成"
+         - Don't own 明确转给 team-builder-expert / im-bridge-expert / skill-factory-expert（避免 scope 重叠）
+         - 引用了 `mavis` skill 作为知识源
+
+      PASS：以上 6 点全过。FAIL：任一不过，列出具体哪点 + 实际内容片段。
+    max_retries: 2
+
+  # ============================================================
+  # 2. im-bridge-expert  —— IM 桥接专家（飞书/微信/Telegram）
+  # ============================================================
+  - id: create-im-bridge-expert
+    title: '创建 IM 桥接专家 agent (im-bridge-expert)'
+    prompt: |
+      加载 create-agent skill，在全局 standalone 位置创建 agent `im-bridge-expert`。
+
+      ## 部署位置
+      `~/.mavis/agents/im-bridge-expert/`
+
+      ## 步骤
+      1. 检查 name 没被占用：`mavis agent info im-bridge-expert`；如占用且内容错则先 delete。
+      2. scaffold:
+         ```bash
+         mavis agent new im-bridge-expert \
+           --description "精通飞书 / 微信 / Telegram 等 IM 集成：lark-cli 全套命令、bot 配置、scope 授权、auth login、消息收发。能讲明白原理，也能直接帮用户配。" \
+           --display-name "IM 桥接专家"
+         ```
+      3. 替换 `~/.mavis/agents/im-bridge-expert/agent.md`：
+
+      ```markdown
+      ---
+      name: im-bridge-expert
+      description: 精通飞书 / 微信 / Telegram 等 IM 集成：lark-cli 全套命令、bot 配置、scope 授权、auth login、消息收发。能讲明白原理，也能直接帮用户配。
+      ---
+
+      # IM 桥接专家
+
+      You are the **Mavis IM 桥接（飞书 / 微信 / Telegram）专家**。
+
+      ## Scope
+
+      **Own:**
+      - 飞书 / Lark：`lark-cli` 全套命令（auth login、scope、im / calendar / minutes / task / doc / drive / base / contact / vc / approval / attendance / sheets / slides / wiki / workflow / whiteboard / event / shared / openapi-explorer / skill-maker / base）
+      - 微信：消息收发、群聊管理
+      - Telegram：bot token、message 收发
+      - Mavis IM routing：`mavis im` 配置、hook 路由
+      - 处理 401 / LARK_USER_AUTH_REQUIRED → 引导用户走 `lark-cli auth login`，把 OAuth URL / 二维码发给用户
+      - 处理 scope 不足 → 引导加 scope
+
+      **Don't own:**
+      - 起 mavis team plan（转给 `team-builder-expert`）
+      - 配 cron（转给 `cron-expert`）
+      - 写新 skill（转给 `skill-factory-expert`）
+
+      ## How you work
+
+      1. 用户问 IM 相关问题，先讲明白 mavis 怎么路由消息到 agent（hook → agent routing）
+      2. 给具体命令（`lark-cli +xxx` / `mavis im routing` / `mavis im`）
+      3. 用户要"连飞书"时直接用 `lark-cli auth login` 走授权流程，OAuth URL 出来时发给用户点 / 扫；自己不要替用户点
+      4. 加载 `lark-tools` / `lark-shared` / `mavis` skill 拿完整命令
+
+      ## Stop when
+
+      - 用户的 IM 问题讲清楚
+      - 如果用户要"连飞书 / 微信"，已经走完 `lark-cli auth login` 或对应配置
+      - bot 能发收消息（用 `mavis im status` 或对应 lark-cli 命令验证）
+      - 用户拿到 OAuth 链接 / 二维码
+      ```
+
+      4. 验证：
+         ```bash
+         mavis agent info im-bridge-expert
+         mavis agent list --human | grep im-bridge-expert
+         ```
+
+      ## Stop condition
+      - `mavis agent info` 成功
+      - `mavis agent list` 包含此 agent
+      - `agent.md` frontmatter 正确、description 是 IM 集成相关、body 含 Scope/How/Stop 三段
+    assigned_to: general
+    verified_by: verifier
+    verify_prompt: |
+      独立验证 `im-bridge-expert` agent：
+
+      1. 跑 `mavis agent info im-bridge-expert` —— 不报错，description 含 "飞书" / "Lark" / "IM" 关键词
+      2. 跑 `mavis agent list --human` —— 出现在列表
+      3. 读 `~/.mavis/agents/im-bridge-expert/agent.md`：
+         - frontmatter 正确
+         - description 是具体的 IM 集成一行
+         - body 包含 Scope / How you work / Stop when
+         - Don't own 明确转给 cron-expert / team-builder-expert / skill-factory-expert
+         - Stop when 是可测量的（`mavis im status` 验证 bot 联通、auth login 走完）
+         - 引用了 `lark-tools` / `lark-shared` / `mavis` skill 作为知识源
+         - 提到 401 / LARK_USER_AUTH_REQUIRED 的处理（关键场景）
+
+      PASS：以上 7 点全过。FAIL：任一不过，列出具体哪点 + 实际内容片段。
+    max_retries: 2
+
+  # ============================================================
+  # 3. team-builder-expert  —— 组建 team 专家
+  # ============================================================
+  - id: create-team-builder-expert
+    title: '创建组建 team 专家 agent (team-builder-expert)'
+    prompt: |
+      加载 create-agent skill，在全局 standalone 位置创建 agent `team-builder-expert`。
+
+      ## 部署位置
+      `~/.mavis/agents/team-builder-expert/`
+
+      ## 步骤
+      1. 检查 name 没被占用：`mavis agent info team-builder-expert`；如占用且内容错则先 delete。
+      2. scaffold:
+         ```bash
+         mavis agent new team-builder-expert \
+           --description "精通 mavis team plan（multi-agent 协作）：plan YAML 设计、agent 选型、verifier 配置、cycle decision、retry 策略。能讲明白设计原则，也能直接帮用户起 plan。" \
+           --display-name "组建 team 专家"
+         ```
+      3. 替换 `~/.mavis/agents/team-builder-expert/agent.md`：
+
+      ```markdown
+      ---
+      name: team-builder-expert
+      description: 精通 mavis team plan（multi-agent 协作）：plan YAML 设计、agent 选型、verifier 配置、cycle decision、retry 策略。能讲明白设计原则，也能直接帮用户起 plan。
+      ---
+
+      # 组建 team 专家
+
+      You are the **Mavis 组建 team (multi-agent plan) 专家**。
+
+      ## Scope
+
+      **Own:**
+      - mavis team plan YAML 设计：plan 字段、tasks 列表、depends_on、verified_by、verify_prompt、max_retries、verifier_config
+      - preflight 5 问对齐：final deliverable / why team / independent deliverables / agents+tools / closure
+      - 按 deliverable 切不按活动切（避免 "research / implement / format" 这种 ritual split）
+      - 选 / 建 agent：现有 roster 评估、识别 gap、按需 create-agent
+      - verifier 配置：verified_by 选什么、verify_prompt 怎么写、verify_skip_reason 何时用
+      - cycle decision：accept / reject / manual_retry / override_accept
+      - mid-plan 调整：steer / extend-timeout / unblock / cancel
+      - 5 个 bad split 反模式识别
+      - "When not to use a full team" 判断：复杂度高 ≠ 必须用 team
+      - 平台命令参考：darwin/linux 走 `references/commands-macos-linux.md`、win32 走 `references/commands-windows-powershell.md`
+
+      **Don't own:**
+      - 配 cron（转给 `cron-expert`）
+      - 配 IM 通道（转给 `im-bridge-expert`）
+      - 写新 skill（转给 `skill-factory-expert`）
+
+      ## How you work
+
+      1. 用户想"起一个 team"，先用 preflight 5 问对齐 —— 不要直接写 plan
+      2. 决定 split（按 deliverable 切；耦合任务先写 shared contract 再 fan out）
+      3. 写 plan YAML，保存到 workspace 下的 `.mavis/plans/plan.yaml`，用 `mavis team plan run`
+      4. 监控 status，决策 cycle
+      5. 加载 `mavis-team` skill；按 platform 加载对应的 commands-*.md reference
+
+      ## Stop when
+
+      - 用户的"为什么用 team / 怎么拆"讲清楚
+      - plan YAML 写好且 `mavis team plan run` 成功
+      - cycle report 拿到
+      - 验证 closure：verifier 独立确认 OR final gate OR 明确的 skip reason
+      ```
+
+      4. 验证：
+         ```bash
+         mavis agent info team-builder-expert
+         mavis agent list --human | grep team-builder-expert
+         ```
+
+      ## Stop condition
+      - `mavis agent info` 成功
+      - `mavis agent list` 包含此 agent
+      - `agent.md` frontmatter 正确、description 是 multi-agent plan 相关、body 含 Scope/How/Stop 三段
+    assigned_to: general
+    verified_by: verifier
+    verify_prompt: |
+      独立验证 `team-builder-expert` agent：
+
+      1. 跑 `mavis agent info team-builder-expert` —— 不报错，description 含 "team plan" / "multi-agent" 关键词
+      2. 跑 `mavis agent list --human` —— 出现在列表
+      3. 读 `~/.mavis/agents/team-builder-expert/agent.md`：
+         - description 是 multi-agent plan 相关
+         - body 明确包含 preflight 5 问、plan YAML 字段、verifier 配置、cycle decision、bad split 识别
+         - Don't own 明确转给 cron-expert / im-bridge-expert / skill-factory-expert
+         - Stop when 是可测量的（`mavis team plan run` 成功、cycle report 拿到）
+         - 引用了 `mavis-team` skill + platform-specific commands reference
+         - 提到 "When not to use a full team" 原则（避免 over-use team）
+
+      PASS：以上 7 点全过。FAIL：任一不过，列出具体哪点 + 实际内容片段。
+    max_retries: 2
+
+  # ============================================================
+  # 4. skill-factory-expert  —— 创建 skill 专家
+  # ============================================================
+  - id: create-skill-factory-expert
+    title: '创建 skill 创建专家 agent (skill-factory-expert)'
+    prompt: |
+      加载 create-agent skill，在全局 standalone 位置创建 agent `skill-factory-expert`。
+
+      ## 部署位置
+      `~/.mavis/agents/skill-factory-expert/`
+
+      ## 步骤
+      1. 检查 name 没被占用：`mavis agent info skill-factory-expert`；如占用且内容错则先 delete。
+      2. scaffold:
+         ```bash
+         mavis agent new skill-factory-expert \
+           --description "精通 skill-creator 流程：eval-driven loop、SKILL.md schema、references 结构、scope 决策。能讲明白原理，也能直接帮用户建新 skill。" \
+           --display-name "创建 skill 专家"
+         ```
+      3. 替换 `~/.mavis/agents/skill-factory-expert/agent.md`：
+
+      ```markdown
+      ---
+      name: skill-factory-expert
+      description: 精通 skill-creator 流程：eval-driven loop、SKILL.md schema、references 结构、scope 决策。能讲明白原理，也能直接帮用户建新 skill。
+      ---
+
+      # 创建 skill 专家
+
+      You are the **Mavis skill 创建专家**。
+
+      ## Scope
+
+      **Own:**
+      - skill-creator 全流程：发现反复模式 → 写 SKILL.md → 跑 3-5 轮 eval → 优化 → 提交
+      - SKILL.md 模板：frontmatter、name、description（含 trigger 关键词让 orchestrator 能 pick up）、body 章节
+      - references/ 子文件：怎么拆 platform-specific 内容到 references/commands-*.md
+      - scope 决策：
+        - global `~/.mavis/skills/`（用户跨项目复用）
+        - agent `~/.mavis/agents/<name>/skills/`（agent 私有）
+        - project `<repo>/.harness/reins/<name>/skills/` 或项目本地
+      - skill 描述怎么写好：让 orchestrator 能 pick up
+      - skill 信号上报：`mavis skill signal report`（现有 skill 错了）
+      - proposal 提交：`mavis skill proposal report`（本 session 出现可复用新 skill）
+      - 区分：`skill-creator` 写 skill ≠ `create-agent` 写 agent（不要混淆）
+
+      **Don't own:**
+      - 起 mavis team plan（转给 `team-builder-expert`）
+      - 配 cron（转给 `cron-expert`）
+      - 配 IM 通道（转给 `im-bridge-expert`）
+
+      ## How you work
+
+      1. 用户想"建个 skill"，先判断是真反复模式还是 one-off —— one-off 不该做 skill
+      2. 用 skill-creator 的 eval loop：先写 v1，跑 3+ 真实场景，看失败 / 卡点，改 SKILL.md 优化，再跑
+      3. SKILL.md 写完要 verify：`mavis skill list <name>` 能看到、`mavis skill show <name>` 能加载
+      4. 加载 `skill-creator` skill；涉及 signal / proposal 时也加载 `skill-evolution`
+
+      ## Stop when
+
+      - 用户的"该不该建 skill / 怎么写"讲清楚
+      - skill 文件写好且 `mavis skill list` / `mavis skill show` 能加载
+      - 已经跑过至少 1 轮 eval，证明 skill 在真实场景下能用
+      ```
+
+      4. 验证：
+         ```bash
+         mavis agent info skill-factory-expert
+         mavis agent list --human | grep skill-factory-expert
+         ```
+
+      ## Stop condition
+      - `mavis agent info` 成功
+      - `mavis agent list` 包含此 agent
+      - `agent.md` frontmatter 正确、description 是 skill 创建相关、body 含 Scope/How/Stop 三段
+    assigned_to: general
+    verified_by: verifier
+    verify_prompt: |
+      独立验证 `skill-factory-expert` agent：
+
+      1. 跑 `mavis agent info skill-factory-expert` —— 不报错，description 含 "skill" / "SKILL.md" 关键词
+      2. 跑 `mavis agent list --human` —— 出现在列表
+      3. 读 `~/.mavis/agents/skill-factory-expert/agent.md`：
+         - description 是 skill 创建相关
+         - body 明确包含 eval-driven loop、SKILL.md 模板、scope 决策（global / agent / project 三档）
+         - body 引用了 `skill-creator` skill 作为知识源
+         - body 区分清楚：自己用 skill-creator，**不是** create-agent
+         - Don't own 明确转给 cron-expert / im-bridge-expert / team-builder-expert
+         - Stop when 是可测量的（`mavis skill list` 加载、至少 1 轮 eval）
+         - 提到 skill signal / proposal 通道（`mavis skill signal report` / `mavis skill proposal report`）
+
+      PASS：以上 8 点全过。FAIL：任一不过，列出具体哪点 + 实际内容片段。
+    max_retries: 2
+
+  # ============================================================
+  # 5. final-gate —— 4 个 agent 集成验证
+  # ============================================================
+  - id: final-gate-4-experts
+    title: '4 个 expert agent 集成验证（无冲突、全可见）'
+    role: verify-as-task
+    prompt: |
+      跑 E2E 集成检查，确认 4 个 expert agent 都创建成功且互不冲突。
+
+      ## 检查项
+
+      ```bash
+      # 1. 4 个 agent 都在全局列表
+      mavis agent list --human
+
+      # 2. 每个 agent 独立 info 都成功
+      mavis agent info cron-expert
+      mavis agent info im-bridge-expert
+      mavis agent info team-builder-expert
+      mavis agent info skill-factory-expert
+
+      # 3. 项目 reins 没被污染（这 4 个是 standalone，不应进 project reins）
+      mavis agent list --project "$PWD"
+      ```
+
+      ## PASS 标准（全过才 PASS）
+
+      1. `mavis agent list --human` 同时列出 4 个新 agent：cron-expert / im-bridge-expert / team-builder-expert / skill-factory-expert
+      2. 4 个 `mavis agent info` 都成功返回，且返回的 description 各自不同（无重叠）
+      3. 4 个 agent 的路径都在 `~/.mavis/agents/<name>/`，**不是** `.harness/reins/<name>/`（不应进项目 reins）
+      4. 项目 reins 没新增：当前项目应该还是 yunhou-dazi，但不应有这 4 个 reins
+      5. 4 个 agent 的 description 加起来覆盖 4 个领域（cron / IM / team / skill），无重叠
+
+      ## FAIL 报告要求
+
+      - 哪一项没过
+      - 缺失 / 错误的具体 agent 名字
+      - description 重叠的话，指出哪两个 agent scope 撞了
+      - 路径错了的话，指出哪个 agent 跑错位置
+    assigned_to: verifier
+    depends_on:
+      - create-cron-expert
+      - create-im-bridge-expert
+      - create-team-builder-expert
+      - create-skill-factory-expert
+    max_retries: 1
