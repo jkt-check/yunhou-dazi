@@ -5,18 +5,17 @@ import { drawBackground } from './sprites/background';
 import type { Scene } from '@/scenes/types';
 import type { LevelConfig } from '@/types/game';
 import { gameStore } from '@/store';
+import { HOLES_TOTAL, HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
-const HOLES = 12;
-const COLS = 4;
-const ROWS = 3;
 const RISING_MS = 200;
 const RETREATING_MS = 150;
+const SWING_MS = 300;
 
 function getHolePos(index: number, w: number, h: number): { x: number; y: number } {
-  const col = index % COLS;
-  const row = Math.floor(index / COLS);
-  const cellW = w / (COLS + 1);
-  const cellH = (h * 0.45) / (ROWS + 1);
+  const col = index % HOLES_COLS;
+  const row = Math.floor(index / HOLES_COLS);
+  const cellW = w / (HOLES_COLS + 1);
+  const cellH = (h * 0.45) / (HOLES_ROWS + 1);
   return {
     x: cellW * (col + 1),
     y: h * 0.58 + cellH * row
@@ -69,11 +68,16 @@ export function startRenderer(opts: RendererOpts): () => void {
     const state = gameStore.get();
     const w = el.clientWidth;
     const h = el.clientHeight;
+    // Guard: hidden canvas (w/h === 0) would draw every mole at origin
+    if (w === 0 || h === 0) {
+      rafId = requestAnimationFrame(frame);
+      return;
+    }
     ctx.clearRect(0, 0, w, h);
 
     drawBackground(ctx, w, 0, h);
 
-    for (let i = 0; i < HOLES; i++) {
+    for (let i = 0; i < HOLES_TOTAL; i++) {
       const { x, y } = getHolePos(i, w, h);
       drawHole(ctx, x, y);
     }
@@ -94,7 +98,7 @@ export function startRenderer(opts: RendererOpts): () => void {
       }
     }
 
-    const swinging = swing && (performance.now() - lastSwingAt) < 300;
+    const swinging = swing && (performance.now() - lastSwingAt) < SWING_MS;
     drawMonkey(ctx, w * 0.18, h * 0.22, swinging);
 
     rafId = requestAnimationFrame(frame);

@@ -4,6 +4,12 @@ import { achievementsStore } from '@/store';
 import { sync } from '@/store/middleware/sync';
 import type { AchievementsState } from '@/store/slices/achievements';
 import { mockAccount } from '@/services/mockAccount';
+import { registerScene } from '@/scenes/types';
+import { lettersScene } from '@/scenes/letters';
+
+// Register all scenes at boot (single source of truth)
+// Add new scenes here as they ship; engine stays scene-agnostic.
+registerScene(lettersScene);
 
 // Wire mock-account sync (dev) / future real account (prod)
 // Plan Task 33: cloud sync via SyncTarget. In dev, mockAccount stands in for

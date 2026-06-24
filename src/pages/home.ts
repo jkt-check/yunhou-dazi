@@ -15,17 +15,17 @@ export function renderHome(root: HTMLElement) {
             <span class="scene-name">英文字母</span>
             <span class="scene-status scene-status--ready">关卡已开放</span>
           </a>
-          <a href="#" class="scene-btn scene-btn--locked" onclick="event.preventDefault()">
+          <a href="#" class="scene-btn scene-btn--locked" data-locked>
             <span class="scene-icon">拼</span>
             <span class="scene-name">汉语拼音</span>
             <span class="scene-status">敬请期待</span>
           </a>
-          <a href="#" class="scene-btn scene-btn--locked" onclick="event.preventDefault()">
+          <a href="#" class="scene-btn scene-btn--locked" data-locked>
             <span class="scene-icon">📖</span>
             <span class="scene-name">英文单词</span>
             <span class="scene-status">敬请期待</span>
           </a>
-          <a href="#" class="scene-btn scene-btn--locked" onclick="event.preventDefault()">
+          <a href="#" class="scene-btn scene-btn--locked" data-locked>
             <span class="scene-icon">成</span>
             <span class="scene-name">成语</span>
             <span class="scene-status">敬请期待</span>
@@ -40,4 +40,9 @@ export function renderHome(root: HTMLElement) {
       </nav>
     </main>
   `;
+
+  // Locked scenes: prevent navigation (CSP-friendly, no inline handlers)
+  root.querySelectorAll<HTMLAnchorElement>('a[data-locked]').forEach(a => {
+    a.addEventListener('click', e => e.preventDefault());
+  });
 }

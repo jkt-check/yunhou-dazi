@@ -1,4 +1,6 @@
 import type { Scene, SceneContext } from './types';
+import { randIndex } from '@/utils/random';
+import { VERMILION, PAPER_WARM } from '@/render/palette';
 
 export const lettersScene: Scene = {
   id: 'letters',
@@ -8,14 +10,14 @@ export const lettersScene: Scene = {
 
   generateKey(ctx: SceneContext): string {
     const pool = (ctx.sceneConfig.pool as string[]) ?? ['a', 'b', 'c'];
-    return pool[Math.floor(ctx.rng() * pool.length)];
+    return pool[randIndex(pool.length)];
   },
 
   renderKey(ctx, key, x, y) {
     ctx.save();
     // White seal/chop badge background
-    ctx.fillStyle = '#FAF3E0';
-    ctx.strokeStyle = '#C44536';
+    ctx.fillStyle = PAPER_WARM;
+    ctx.strokeStyle = VERMILION;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(x, y, 22, 0, Math.PI * 2);
@@ -23,17 +25,17 @@ export const lettersScene: Scene = {
     ctx.stroke();
 
     // Inner thin ring
-    ctx.strokeStyle = '#C44536';
+    ctx.strokeStyle = VERMILION;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(x, y, 17, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Character
-    ctx.font = 'bold 26px "JetBrains Mono", monospace';
+    // Character (spec §6.3: bold 28px JetBrains Mono)
+    ctx.font = 'bold 28px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#C44536';
+    ctx.fillStyle = VERMILION;
     ctx.fillText(key, x, y + 1);
     ctx.restore();
   },

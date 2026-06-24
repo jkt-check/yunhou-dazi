@@ -46,19 +46,5 @@ export const mockAccount: AccountClient = {
 
   async loadProgress() {
     return load().progress;
-  },
-
-  async unlockAchievement(id: string) {
-    const cur = load();
-    if (cur.progress) {
-      cur.progress.unlockedAchievements = Array.from(new Set([...cur.progress.unlockedAchievements, id]));
-      save(cur);
-    }
-  },
-
-  async getAchievements() {
-    const p = load().progress;
-    if (!p) return [];
-    return p.unlockedAchievements.map(id => ({ id, unlockedAt: Date.now() }));
   }
 };

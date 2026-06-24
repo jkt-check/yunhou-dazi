@@ -3,8 +3,7 @@ import { createEventBus } from '@/core/eventBus';
 import { GameEngine } from '@/core/engine';
 import { setupInput } from '@/core/inputController';
 import { getLevel } from '@/core/level';
-import { registerScene, getScene } from '@/scenes/types';
-import { lettersScene } from '@/scenes/letters';
+import { getScene } from '@/scenes/types';
 import { createGameCanvas } from '@/render/canvas';
 import { startRenderer } from '@/render/renderer';
 import { createHUD } from '@/ui/hud';
@@ -13,15 +12,7 @@ import { checkAchievements, getAllRules, accumulateAchievementStats } from '@/ac
 import { gameStore, achievementsStore, settingsStore } from '@/store';
 import { audio } from '@/audio/audioEngine';
 
-let registered = false;
-function ensureScenesRegistered() {
-  if (registered) return;
-  registerScene(lettersScene);
-  registered = true;
-}
-
 export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
-  ensureScenesRegistered();
   const levelId = parseInt(ctx.query.level ?? '1', 10);
   const level = getLevel(levelId);
   if (!level) {

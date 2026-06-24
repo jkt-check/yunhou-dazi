@@ -2,28 +2,12 @@ export function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export function randFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
-
-export function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-export function pickWeighted<T>(items: readonly { value: T; weight: number }[]): T {
-  const total = items.reduce((s, i) => s + i.weight, 0);
-  let r = Math.random() * total;
-  for (const item of items) {
-    r -= item.weight;
-    if (r <= 0) return item.value;
-  }
-  return items[items.length - 1].value;
-}
-
-export function createRng(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0xffffffff;
-  };
+/**
+ * Pick a random index into a non-empty array, clamped so a `Math.random()` of
+ * 1.0 cannot return `arr.length` (out-of-bounds) when used with a seeded RNG
+ * that returns the upper bound.
+ */
+export function randIndex(length: number): number {
+  if (length <= 0) return 0;
+  return Math.min(length - 1, Math.floor(Math.random() * length));
 }

@@ -20,7 +20,7 @@ const initial: SettingsState = {
 export const settingsStore = createStore<SettingsState>(initial)
   .extend(persistence<SettingsState>({
     key: 'yunhou:settings',
-    // Drop unknown fields on hydrate so old localStorage payloads that still
-    // contain `bgmEnabled` (removed in v0.3) don't break the strict SettingsState.
+    // Whitelist: drop unknown fields on hydrate AND on persist, so the localStorage
+    // payload stays forward-compatible with future SettingsState shape changes.
     whitelist: ['volume', 'sfxEnabled', 'showVirtualKeyboard', 'theme'] as (keyof SettingsState)[]
   }));

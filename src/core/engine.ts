@@ -1,4 +1,4 @@
-import type { LevelConfig, Mole, LevelStats } from '@/types/game';
+import type { LevelConfig, Mole, LevelStats, FailReason } from '@/types/game';
 import type { EventBus } from './eventBus';
 import { Spawner } from './spawner';
 import { advanceMole, hitMole } from './mole';
@@ -120,7 +120,7 @@ export class GameEngine {
 
     const elapsedMs = now - (state.startTime ?? now);
     let missedAny = 0;
-    let shouldFail: string | null = null;
+    let shouldFail: FailReason | null = null;
 
     for (const m of this.currentMoles) {
       const before = m.state;
@@ -180,7 +180,7 @@ export class GameEngine {
     this.hooks.bus.emit({ type: 'level:complete', stats });
   }
 
-  private fail(reason: string) {
+  private fail(reason: FailReason) {
     gameStore.set({ status: 'lost' });
     this.stop();
     this.hooks.bus.emit({ type: 'level:fail', reason });

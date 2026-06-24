@@ -7,6 +7,4 @@ export interface AccountClient {
   logout(): Promise<void>;
   saveProgress(progress: UserProgress): Promise<void>;
   loadProgress(): Promise<UserProgress | null>;
-  getAchievements(): Promise<Array<{ id: string; unlockedAt: number }>>;
-  unlockAchievement(id: string): Promise<void>;
 }

@@ -1,26 +1,25 @@
 import type { Mole } from '@/types/game';
-import { randInt } from '@/utils/random';
+import { randInt, randIndex } from '@/utils/random';
+import { nextId } from '@/utils/id';
+import { createMole } from './mole';
+import { HOLES_TOTAL } from './grid';
 
 export interface SpawnerConfig {
   activeCount: number;
   spawnInterval: [number, number];
   sceneId: string;
   generate: () => string;
-  rng?: () => number;
 }
 
 export class Spawner {
   private nextSpawnMs = 0;
   private occupiedHoles = new Set<number>();
-  private rng: () => number;
 
   constructor(
     private config: SpawnerConfig,
     private onSpawn: (m: Mole) => void,
     private now: () => number = () => performance.now()
-  ) {
-    this.rng = config.rng ?? Math.random;
-  }
+  ) {}
 
   start() { this.nextSpawnMs = this.now() + 200; }
 
@@ -42,19 +41,17 @@ export class Spawner {
 
   private spawnOne() {
     const free: number[] = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < HOLES_TOTAL; i++) {
       if (!this.occupiedHoles.has(i)) free.push(i);
     }
     if (free.length === 0) return;
-    const hole = free[Math.floor(this.rng() * free.length)];
-    this.onSpawn({
-      id: `mole_${this.now().toString(36)}_${hole}`,
+    const hole = free[randIndex(free.length)];
+    this.onSpawn(createMole({
       holeIndex: hole,
       key: this.config.generate(),
       sceneId: this.config.sceneId,
-      state: 'rising',
-      appearAt: this.now(),
-      hitAt: null
-    });
+      now: this.now(),
+      id: nextId('mole')
+    }));
   }
 }

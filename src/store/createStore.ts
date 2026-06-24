@@ -1,12 +1,23 @@
 export type Updater<T> = (state: T) => T;
 export type Subscriber<T> = (state: T, prev: T) => void;
 
+export interface Middleware<T> {
+  (store: Store<T>): void | ((() => void) | Store<T>);
+}
+
 export interface Store<T> {
   get(): T;
   set(partial: Partial<T> | Updater<T>): void;
   subscribe(fn: Subscriber<T>): () => void;
   subscribeWithSelector<U>(selector: (state: T) => U, fn: (value: U, prev: U) => void): () => void;
-  extend<U>(mw: (s: Store<T>) => Store<U>): Store<U>;
+  /**
+   * Apply middleware. Mutates the store in place and returns the same reference
+   * so chained `.extend(a).extend(b)` always composes onto the original store.
+   *
+   * If a middleware returns a new `Store<U>`, the mutation is ignored (the
+   * returned store would be a detached clone and silently drop the chain).
+   */
+  extend(mw: Middleware<T>): Store<T>;
   destroy(): void;
 }
 
@@ -39,8 +50,9 @@ export function createStore<T>(initial: T): Store<T> {
       selSubs.add(entry);
       return () => selSubs.delete(entry);
     },
-    extend<U>(mw: (s: Store<T>) => Store<U>): Store<U> {
-      return mw(store);
+    extend(mw) {
+      mw(store);
+      return store;
     },
     destroy() { subs.clear(); selSubs.clear(); }
   };

@@ -1,8 +1,8 @@
-import type { Store } from '../createStore';
+import type { Middleware, Store } from '../createStore';
 
-export function logger<T>(label: string) {
-  return (store: Store<T>): Store<T> => {
-    if (!import.meta.env.DEV) return store;
+export function logger<T>(label: string): Middleware<T> {
+  return (store: Store<T>) => {
+    if (!import.meta.env.DEV) return;
     store.subscribe((state, prev) => {
       const sObj = state as unknown as Record<string, unknown>;
       const pObj = prev as unknown as Record<string, unknown>;
@@ -13,6 +13,5 @@ export function logger<T>(label: string) {
         console.debug(`[${label}]`, changes);
       }
     });
-    return store;
   };
 }

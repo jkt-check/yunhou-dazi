@@ -28,6 +28,8 @@ export interface GameState {
   startTime: number | null;
 }
 
+export type FailReason = 'lives_exhausted' | 'time_up';
+
 export type GameEvent =
   | { type: 'mole:spawn'; mole: Mole }
   | { type: 'mole:hit'; mole: Mole; responseMs: number }
@@ -35,7 +37,7 @@ export type GameEvent =
   | { type: 'mole:timeout'; mole: Mole }
   | { type: 'level:start'; levelId: number }
   | { type: 'level:complete'; stats: LevelStats }
-  | { type: 'level:fail'; reason: string }
+  | { type: 'level:fail'; reason: FailReason }
   | { type: 'achievement:unlocked'; id: string }
   | { type: 'key:press'; key: string }
   | { type: 'game:pause' }
