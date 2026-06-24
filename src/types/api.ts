@@ -1,4 +1,4 @@
-import type { User, UserProgress } from './user';
+import type { User } from './user';
 
 export interface LoginRequest {
   username: string;

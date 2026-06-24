@@ -35,7 +35,7 @@ export function createStore<T>(initial: T): Store<T> {
     set,
     subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
     subscribeWithSelector(sel, fn) {
-      const entry = { sel, fn };
+      const entry = { sel: sel as (s: T) => unknown, fn: fn as (v: unknown, p: unknown) => void };
       selSubs.add(entry);
       return () => selSubs.delete(entry);
     },

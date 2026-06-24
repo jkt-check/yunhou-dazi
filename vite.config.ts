@@ -7,14 +7,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          audio: ['./src/audio/audioEngine.ts']
-        }
-      }
-    }
+    sourcemap: true
   },
   test: {
     environment: 'happy-dom',
