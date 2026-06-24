@@ -1,6 +1,6 @@
 import type { AccountClient } from './AccountClient';
 import type { User, UserProgress } from '@/types/user';
-import type { LoginRequest, AuthResult } from '@/types/api';
+import type { LoginRequest } from '@/types/api';
 
 const STORAGE_KEY = 'yunhou:mockAccount';
 

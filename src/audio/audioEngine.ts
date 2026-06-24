@@ -7,10 +7,12 @@ class AudioEngine {
     if (this.ctx) return;
     const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
     if (!AC) return;
-    this.ctx = new AC();
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = this.volume;
-    this.masterGain.connect(this.ctx.destination);
+    const ctx = new AC();
+    const gain = ctx.createGain();
+    gain.gain.value = this.volume;
+    gain.connect(ctx.destination);
+    this.ctx = ctx;
+    this.masterGain = gain;
   }
 
   resume() {
