@@ -1,5 +1,6 @@
 import { gameStore } from '@/store';
 import { formatDuration, formatMs } from '@/utils/time';
+import { calcAverage } from '@/core/scoring';
 
 export interface HUDHandle {
   destroy(): void;
@@ -30,7 +31,7 @@ export function createHUD(root: HTMLElement): HUDHandle {
     gameStore.subscribeWithSelector(s => s.lives, v => refs.lives.textContent = String(v)),
     gameStore.subscribeWithSelector(s => s.elapsedMs, v => refs.time.textContent = formatDuration(v)),
     gameStore.subscribeWithSelector(
-      s => s.responseTimes.length ? Math.round(s.responseTimes.reduce((a, b) => a + b, 0) / s.responseTimes.length) : 0,
+      s => s.responseTimes.length ? Math.round(calcAverage(s.responseTimes)) : 0,
       v => refs.avg.textContent = v ? formatMs(v) : '—'
     )
   ];

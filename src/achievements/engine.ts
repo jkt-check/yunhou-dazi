@@ -5,6 +5,8 @@ import rules from '../../data/achievements.json';
 
 export type AchievementStats = AchievementsState['stats'];
 
+type Op = '<' | '<=' | '>' | '>=' | '==' | '!=';
+
 interface Rule {
   id: string;
   name?: string;
@@ -12,21 +14,25 @@ interface Rule {
   description?: string;
   condition: {
     metric: string;
-    op: '<' | '<=' | '>' | '>=' | '==' | '!=';
+    op: Op;
     value: number | string;
   };
 }
 
-const allRules: Rule[] = rules as any;
+// Local interface for the JSON shape (typed narrowly to avoid `any`).
+// If data/achievements.json has a malformed condition, the cast surfaces it here
+// (rather than being silently erased by `as any`).
+const allRules = rules as unknown as Rule[];
 
-function evaluate(op: string, a: any, b: any): boolean {
+function evaluate(op: Op, a: number, b: number | string): boolean {
+  const bn = typeof b === 'string' ? parseFloat(b) : b;
   switch (op) {
-    case '<':  return a < b;
-    case '<=': return a <= b;
-    case '>':  return a > b;
-    case '>=': return a >= b;
-    case '==': return a === b;
-    case '!=': return a !== b;
+    case '<':  return a < bn;
+    case '<=': return a <= bn;
+    case '>':  return a > bn;
+    case '>=': return a >= bn;
+    case '==': return a === bn;
+    case '!=': return a !== bn;
     default:   return false;
   }
 }
@@ -61,9 +67,9 @@ export function getAllRules(): Rule[] {
 }
 
 /**
- * Pure reducer-style accumulator. Call this on every `mole:hit` (delta = +1)
- * and on `level:complete` (final batch is fine because per-hit updates keep
- * `totalHits` accurate incrementally).
+ * Pure reducer-style accumulator. Call on every `mole:hit` (delta = +1)
+ * and on `level:complete` (no-op for totalHits since per-hit calls already
+ * kept it accurate).
  *
  * Fixes BUG-1 (square growth): we previously added `game.hits` (current session
  * total) on every hit, which compounded as 1+2+3+...+N.
