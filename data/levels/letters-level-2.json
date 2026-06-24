@@ -1,0 +1,17 @@
+{
+  "id": 2,
+  "scene": "letters",
+  "name": "全字母",
+  "duration": 60,
+  "moles": {
+    "activeCount": 3,
+    "spawnInterval": [900, 1600],
+    "stayTime": 2500
+  },
+  "sceneConfig": {
+    "pool": ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+  },
+  "difficulty": 2,
+  "winCondition": { "type": "score", "target": 350 },
+  "loseCondition": { "type": "misses", "max": 5 }
+}
