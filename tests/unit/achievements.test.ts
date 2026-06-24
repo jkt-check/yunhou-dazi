@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkAchievements } from '@/achievements/engine';
+import { checkAchievements, accumulateAchievementStats } from '@/achievements/engine';
 import type { GameState } from '@/types/game';
 import type { AchievementsState } from '@/store/slices/achievements';
 
@@ -39,5 +39,47 @@ describe('achievement engine', () => {
       baseAch
     );
     expect(result).not.toContain('speed-bronze');
+  });
+});
+
+describe('accumulateAchievementStats (regression: BUG-1)', () => {
+  it('increments totalHits by 1 per call (not by current session hits)', () => {
+    // Simulate a session with 5 hits
+    const game: GameState = { ...baseGame, hits: 5, maxCombo: 5, responseTimes: [500, 600, 700, 800, 900] };
+    let stats = baseAch.stats;
+    // Apply 5 times as if 5 hits happened
+    for (let i = 0; i < 5; i++) {
+      stats = accumulateAchievementStats(stats, game);
+    }
+    expect(stats.totalHits).toBe(5);
+  });
+
+  it('keeps bestCombo as max across calls', () => {
+    let stats = baseAch.stats;
+    stats = accumulateAchievementStats(stats, { ...baseGame, hits: 1, maxCombo: 3 });
+    stats = accumulateAchievementStats(stats, { ...baseGame, hits: 2, maxCombo: 7 });
+    stats = accumulateAchievementStats(stats, { ...baseGame, hits: 3, maxCombo: 2 });
+    expect(stats.bestCombo).toBe(7);
+  });
+
+  it('keeps bestAvgResponseMs as min of session averages', () => {
+    let stats = baseAch.stats;
+    stats = accumulateAchievementStats(stats, { ...baseGame, hits: 3, responseTimes: [2000, 2500, 3000] });
+    expect(stats.bestAvgResponseMs).toBe(2500);
+    stats = accumulateAchievementStats(stats, { ...baseGame, hits: 4, responseTimes: [1000, 1100, 1200, 1300] });
+    expect(stats.bestAvgResponseMs).toBe(1150);
+  });
+
+  it('does not set bestAvgResponseMs when session has no hits', () => {
+    const stats = accumulateAchievementStats(baseAch.stats, baseGame);
+    expect(stats.bestAvgResponseMs).toBeNull();
+  });
+
+  it('stores sessionAvgResponseMs for the latest hit', () => {
+    const stats = accumulateAchievementStats(
+      baseAch.stats,
+      { ...baseGame, hits: 2, responseTimes: [800, 1200] }
+    );
+    expect(stats.sessionAvgResponseMs).toBe(1000);
   });
 });

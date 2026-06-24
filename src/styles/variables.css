@@ -61,3 +61,53 @@
     radial-gradient(circle at 70% 60%, rgba(44,24,16,0.03) 1px, transparent 1px);
   --paper-texture-size: 8px 8px, 12px 12px;
 }
+
+/* === Theme overrides ===
+ * Driven by document.documentElement.dataset.theme (set by settings page).
+ * Only override the tokens that should differ; rest cascade from :root.
+ */
+
+[data-theme="sepia"] {
+  --color-paper: #E8D9BC;
+  --color-paper-shadow: #D4BE92;
+  --color-paper-warm: #F0E4C8;
+  --color-ink: #3A2410;
+  --color-ink-muted: #6B4A2A;
+  --color-sky-bottom: #E0B98A;
+  --color-ochre: #B05E2C;
+  --color-vermilion: #A6402F;
+  --color-moss: #4E6E50;
+}
+
+[data-theme="ink"] {
+  --color-paper: #1B1816;
+  --color-paper-shadow: #2A2624;
+  --color-paper-warm: #221F1D;
+  --color-ink: #EFE6D2;
+  --color-ink-muted: #A89E8B;
+  --color-haze: #3A4A52;
+  --color-sky-top: #2A2E32;
+  --color-sky-bottom: #4A3F35;
+  --color-ochre: #D88E4E;
+  --color-vermilion: #E26554;
+  --color-moss: #7AA67C;
+  --color-honey: #E8C257;
+  --color-surface: var(--color-paper-warm);
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-muted);
+}
+
+[data-theme="ink"] body {
+  background: linear-gradient(180deg, var(--color-sky-top), var(--color-sky-bottom));
+}
+
+[data-theme="ink"] .hud,
+[data-theme="ink"] .canvas-mount,
+[data-theme="ink"] .vkb,
+[data-theme="ink"] .scene-btn,
+[data-theme="ink"] .ach-card,
+[data-theme="ink"] .modal,
+[data-theme="ink"] .profile-stats,
+[data-theme="ink"] .settings-form {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

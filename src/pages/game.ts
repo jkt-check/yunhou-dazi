@@ -9,7 +9,7 @@ import { createGameCanvas } from '@/render/canvas';
 import { startRenderer } from '@/render/renderer';
 import { createHUD } from '@/ui/hud';
 import { showToast } from '@/ui/components/modal';
-import { checkAchievements, getAllRules } from '@/achievements/engine';
+import { checkAchievements, getAllRules, accumulateAchievementStats } from '@/achievements/engine';
 import { gameStore, achievementsStore, settingsStore } from '@/store';
 import { audio } from '@/audio/audioEngine';
 
@@ -56,7 +56,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const hud = createHUD(hudMount);
   const gameCanvas = createGameCanvas(canvasMount);
   const bus = createEventBus();
-  const renderer = startRenderer({ canvas: gameCanvas, scene });
+  const renderer = startRenderer({ canvas: gameCanvas, scene, level });
 
   const engine = new GameEngine({ scene, bus, level });
   const input = vkbMount
@@ -133,7 +133,6 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     const gameState = gameStore.get();
     const achState = achievementsStore.get();
     const newIds = checkAchievements(gameState, achState);
-    if (newIds.length === 0) return;
 
     const unlocked: Record<string, number> = { ...achState.unlocked };
     for (const id of newIds) {
@@ -142,23 +141,9 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
       if (rule) showToast(rule.name ?? id, rule.icon ?? '✨');
     }
 
-    const sessionAvg = gameState.responseTimes.length
-      ? gameState.responseTimes.reduce((a, b) => a + b, 0) / gameState.responseTimes.length
-      : null;
-
     achievementsStore.set(prev => ({
       unlocked,
-      stats: {
-        ...prev.stats,
-        totalHits: prev.stats.totalHits + gameState.hits,
-        bestAvgResponseMs: sessionAvg === null
-          ? prev.stats.bestAvgResponseMs
-          : prev.stats.bestAvgResponseMs === null
-            ? sessionAvg
-            : Math.min(prev.stats.bestAvgResponseMs, sessionAvg),
-        bestCombo: Math.max(prev.stats.bestCombo, gameState.maxCombo),
-        sessionAvgResponseMs: sessionAvg
-      }
+      stats: accumulateAchievementStats(prev.stats, gameState)
     }));
 
     for (const id of newIds) bus.emit({ type: 'achievement:unlocked', id });

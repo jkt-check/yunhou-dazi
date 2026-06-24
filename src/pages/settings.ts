@@ -1,8 +1,24 @@
-import { settingsStore } from '@/store';
+import { settingsStore, type SettingsState } from '@/store/slices/settings';
 import { audio } from '@/audio/audioEngine';
 
 export function renderSettings(root: HTMLElement) {
   const s = settingsStore.get();
+
+  function readValue(el: HTMLInputElement | HTMLSelectElement, key: keyof SettingsState): unknown {
+    if (key === 'sfxEnabled' || key === 'showVirtualKeyboard') {
+      return (el as HTMLInputElement).checked;
+    }
+    if (key === 'volume') return parseFloat(el.value);
+    if (key === 'theme') return el.value as SettingsState['theme'];
+    return el.value;
+  }
+
+  function applyTheme(theme: SettingsState['theme']) {
+    document.documentElement.dataset.theme = theme;
+  }
+
+  applyTheme(s.theme);
+
   root.innerHTML = `
     <main class="page-settings">
       <h2>设置</h2>
@@ -17,24 +33,29 @@ export function renderSettings(root: HTMLElement) {
           <input type="checkbox" data-key="sfxEnabled" ${s.sfxEnabled ? 'checked' : ''} />
         </label>
         <label class="setting-row">
-          <span class="setting-label">背景音乐</span>
-          <input type="checkbox" data-key="bgmEnabled" ${s.bgmEnabled ? 'checked' : ''} />
-        </label>
-        <label class="setting-row">
           <span class="setting-label">显示虚拟键盘</span>
           <input type="checkbox" data-key="showVirtualKeyboard" ${s.showVirtualKeyboard ? 'checked' : ''} />
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">主题</span>
+          <select data-key="theme">
+            <option value="default" ${s.theme === 'default' ? 'selected' : ''}>默认（暖纸）</option>
+            <option value="sepia" ${s.theme === 'sepia' ? 'selected' : ''}>怀旧（深褐）</option>
+            <option value="ink" ${s.theme === 'ink' ? 'selected' : ''}>水墨（深色）</option>
+          </select>
         </label>
       </div>
       <p><a href="#/" class="back-link">← 返回</a></p>
     </main>
   `;
 
-  root.querySelectorAll<HTMLInputElement>('[data-key]').forEach(el => {
+  root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-key]').forEach(el => {
     el.addEventListener('change', () => {
-      const key = el.dataset.key as keyof typeof s;
-      const value = el.type === 'checkbox' ? el.checked : parseFloat(el.value);
-      (settingsStore.set as any)({ [key]: value });
+      const key = el.dataset.key as keyof SettingsState;
+      const value = readValue(el, key);
+      settingsStore.set({ [key]: value } as Partial<SettingsState>);
       if (key === 'volume') audio.setVolume(value as number);
+      if (key === 'theme') applyTheme(value as SettingsState['theme']);
 
       // Update label for volume
       if (key === 'volume') {

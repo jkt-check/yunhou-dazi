@@ -3,6 +3,8 @@ import type { AchievementsState } from '@/store/slices/achievements';
 import { calcAverage } from '@/core/scoring';
 import rules from '../../data/achievements.json';
 
+export type AchievementStats = AchievementsState['stats'];
+
 interface Rule {
   id: string;
   name?: string;
@@ -56,4 +58,33 @@ export function checkAchievements(game: GameState, ach: AchievementsState): stri
 
 export function getAllRules(): Rule[] {
   return [...allRules];
+}
+
+/**
+ * Pure reducer-style accumulator. Call this on every `mole:hit` (delta = +1)
+ * and on `level:complete` (final batch is fine because per-hit updates keep
+ * `totalHits` accurate incrementally).
+ *
+ * Fixes BUG-1 (square growth): we previously added `game.hits` (current session
+ * total) on every hit, which compounded as 1+2+3+...+N.
+ */
+export function accumulateAchievementStats(
+  prev: AchievementStats,
+  game: GameState
+): AchievementStats {
+  const sessionAvg = game.responseTimes.length > 0
+    ? calcAverage(game.responseTimes)
+    : null;
+
+  return {
+    ...prev,
+    totalHits: prev.totalHits + 1,
+    bestCombo: Math.max(prev.bestCombo, game.maxCombo),
+    bestAvgResponseMs: sessionAvg === null
+      ? prev.bestAvgResponseMs
+      : prev.bestAvgResponseMs === null
+        ? sessionAvg
+        : Math.min(prev.bestAvgResponseMs, sessionAvg),
+    sessionAvgResponseMs: sessionAvg
+  };
 }

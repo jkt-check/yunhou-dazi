@@ -3,11 +3,14 @@ import { drawMonkey } from './sprites/monkey';
 import { drawMole, drawHole } from './sprites/mole';
 import { drawBackground } from './sprites/background';
 import type { Scene } from '@/scenes/types';
+import type { LevelConfig } from '@/types/game';
 import { gameStore } from '@/store';
 
 const HOLES = 12;
 const COLS = 4;
 const ROWS = 3;
+const RISING_MS = 200;
+const RETREATING_MS = 150;
 
 function getHolePos(index: number, w: number, h: number): { x: number; y: number } {
   const col = index % COLS;
@@ -23,10 +26,13 @@ function getHolePos(index: number, w: number, h: number): { x: number; y: number
 export interface RendererOpts {
   canvas: GameCanvas;
   scene: Scene;
+  level: LevelConfig;
 }
 
 export function startRenderer(opts: RendererOpts): () => void {
-  const { canvas: gc, scene } = opts;
+  const { canvas: gc, scene, level } = opts;
+  const stayTime = level.moles.stayTime;
+  const fullActiveMs = RISING_MS + stayTime;
   const { ctx, el } = gc;
   let lastSwingAt = 0;
   let swing = false;
@@ -76,8 +82,8 @@ export function startRenderer(opts: RendererOpts): () => void {
       const { x, y } = getHolePos(m.holeIndex, w, h);
       const age = performance.now() - m.appearAt;
       let progress = 1;
-      if (m.state === 'rising') progress = Math.min(1, age / 200);
-      else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (200 + 2200)) / 150);
+      if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
+      else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - fullActiveMs) / RETREATING_MS);
       else if (m.state === 'hit') progress = 1;
 
       const yOffset = (1 - progress) * 40;
