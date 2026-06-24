@@ -8,6 +8,9 @@ import { lettersScene } from '@/scenes/letters';
 import { createGameCanvas } from '@/render/canvas';
 import { startRenderer } from '@/render/renderer';
 import { createHUD } from '@/ui/hud';
+import { showToast } from '@/ui/components/modal';
+import { checkAchievements, getAllRules } from '@/achievements/engine';
+import { gameStore, achievementsStore } from '@/store';
 
 let registered = false;
 function ensureScenesRegistered() {
@@ -89,6 +92,44 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     showResultModal('💔 失败', `<p>原因: ${e.reason}</p>`);
   });
 
+  // Achievement wiring
+  const allRules = getAllRules();
+  const unsubAch = bus.onAny((e) => {
+    if (e.type !== 'mole:hit' && e.type !== 'level:complete') return;
+    const gameState = gameStore.get();
+    const achState = achievementsStore.get();
+    const newIds = checkAchievements(gameState, achState);
+    if (newIds.length === 0) return;
+
+    const unlocked: Record<string, number> = { ...achState.unlocked };
+    for (const id of newIds) {
+      unlocked[id] = Date.now();
+      const rule = allRules.find(r => r.id === id);
+      if (rule) showToast(rule.name ?? id, rule.icon ?? '✨');
+    }
+
+    const sessionAvg = gameState.responseTimes.length
+      ? gameState.responseTimes.reduce((a, b) => a + b, 0) / gameState.responseTimes.length
+      : null;
+
+    achievementsStore.set(prev => ({
+      unlocked,
+      stats: {
+        ...prev.stats,
+        totalHits: prev.stats.totalHits + gameState.hits,
+        bestAvgResponseMs: sessionAvg === null
+          ? prev.stats.bestAvgResponseMs
+          : prev.stats.bestAvgResponseMs === null
+            ? sessionAvg
+            : Math.min(prev.stats.bestAvgResponseMs, sessionAvg),
+        bestCombo: Math.max(prev.stats.bestCombo, gameState.maxCombo),
+        sessionAvgResponseMs: sessionAvg
+      }
+    }));
+
+    for (const id of newIds) bus.emit({ type: 'achievement:unlocked', id });
+  });
+
   engine.start();
 
   return () => {
@@ -99,6 +140,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     hud.destroy();
     unsubBus();
     unsubBus2();
+    unsubAch();
     gameCanvas.destroy();
   };
 }
