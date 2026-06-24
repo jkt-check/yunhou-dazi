@@ -1,0 +1,12 @@
+[
+  { "id": "first-hit", "name": "初见", "icon": "🌱", "description": "首次击中地鼠", "condition": { "metric": "hits", "op": ">=", "value": 1 } },
+  { "id": "hit-100", "name": "百发百中", "icon": "💯", "description": "累计击中 100 次", "condition": { "metric": "hits", "op": ">=", "value": 100 } },
+  { "id": "hit-1000", "name": "千锤百炼", "icon": "🏆", "description": "累计击中 1000 次", "condition": { "metric": "hits", "op": ">=", "value": 1000 } },
+  { "id": "speed-bronze", "name": "反应灵敏", "icon": "🥉", "description": "平均反应时间 < 2.5s", "condition": { "metric": "avgResponseTime", "op": "<", "value": 2500 } },
+  { "id": "speed-silver", "name": "灵动指尖", "icon": "🥈", "description": "平均反应时间 < 1.5s", "condition": { "metric": "avgResponseTime", "op": "<", "value": 1500 } },
+  { "id": "speed-gold", "name": "神速打字", "icon": "🥇", "description": "平均反应时间 < 0.8s", "condition": { "metric": "avgResponseTime", "op": "<", "value": 800 } },
+  { "id": "combo-10", "name": "连击新手", "icon": "🔥", "description": "单次连击达到 10", "condition": { "metric": "maxCombo", "op": ">=", "value": 10 } },
+  { "id": "combo-30", "name": "连击大师", "icon": "⚡", "description": "单次连击达到 30", "condition": { "metric": "maxCombo", "op": ">=", "value": 30 } },
+  { "id": "score-500", "name": "得分手", "icon": "💰", "description": "单关得分 500+", "condition": { "metric": "score", "op": ">=", "value": 500 } },
+  { "id": "score-1500", "name": "高分达人", "icon": "💎", "description": "单关得分 1500+", "condition": { "metric": "score", "op": ">=", "value": 1500 } }
+]
