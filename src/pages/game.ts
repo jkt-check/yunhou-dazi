@@ -11,6 +11,7 @@ import { createHUD } from '@/ui/hud';
 import { showToast } from '@/ui/components/modal';
 import { checkAchievements, getAllRules } from '@/achievements/engine';
 import { gameStore, achievementsStore } from '@/store';
+import { audio } from '@/audio/audioEngine';
 
 let registered = false;
 function ensureScenesRegistered() {
@@ -77,6 +78,17 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
       window.location.reload();
     });
   }
+
+  // Audio wiring
+  bus.on('mole:hit', () => {
+    audio.resume();
+    audio.hit();
+    if (gameStore.get().combo >= 10) audio.combo();
+  });
+  bus.on('mole:miss', () => { audio.resume(); audio.miss(); });
+  bus.on('achievement:unlocked', () => { audio.resume(); audio.unlock(); });
+  bus.on('level:complete', () => { audio.resume(); audio.win(); });
+  bus.on('level:fail', () => { audio.resume(); audio.lose(); });
 
   const unsubBus = bus.on('level:complete', (e) => {
     showResultModal('🎉 通关', `
