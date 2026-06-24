@@ -6,17 +6,21 @@ export interface SpawnerConfig {
   spawnInterval: [number, number];
   sceneId: string;
   generate: () => string;
+  rng?: () => number;
 }
 
 export class Spawner {
   private nextSpawnMs = 0;
   private occupiedHoles = new Set<number>();
+  private rng: () => number;
 
   constructor(
     private config: SpawnerConfig,
     private onSpawn: (m: Mole) => void,
     private now: () => number = () => performance.now()
-  ) {}
+  ) {
+    this.rng = config.rng ?? Math.random;
+  }
 
   start() { this.nextSpawnMs = this.now() + 200; }
 
@@ -42,9 +46,9 @@ export class Spawner {
       if (!this.occupiedHoles.has(i)) free.push(i);
     }
     if (free.length === 0) return;
-    const hole = free[Math.floor(Math.random() * free.length)];
+    const hole = free[Math.floor(this.rng() * free.length)];
     this.onSpawn({
-      id: `mole_${Date.now()}_${hole}`,
+      id: `mole_${this.now().toString(36)}_${hole}`,
       holeIndex: hole,
       key: this.config.generate(),
       sceneId: this.config.sceneId,

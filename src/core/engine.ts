@@ -1,4 +1,4 @@
-import type { GameState, LevelConfig, Mole, LevelStats } from '@/types/game';
+import type { LevelConfig, Mole, LevelStats } from '@/types/game';
 import type { EventBus } from './eventBus';
 import { Spawner } from './spawner';
 import { advanceMole, hitMole } from './mole';
@@ -15,11 +15,10 @@ export interface EngineHooks {
 export class GameEngine {
   private rafId: number | null = null;
   private currentMoles: Mole[] = [];
-  private spawner: Spawner;
-  private state: GameState = gameStore.get();
+  private spawner!: Spawner;
 
   constructor(private hooks: EngineHooks) {
-    gameStore.set({
+    gameStore.set(() => ({
       status: 'playing',
       currentLevel: this.hooks.level.id,
       startTime: performance.now(),
@@ -33,9 +32,7 @@ export class GameEngine {
       responseTimes: [],
       activeMoles: [],
       recentHitKey: null
-    });
-
-    this.state = gameStore.get();
+    }));
 
     this.spawner = new Spawner({
       activeCount: this.hooks.level.moles.activeCount,
@@ -80,8 +77,8 @@ export class GameEngine {
   }
 
   handleKey(key: string): boolean {
-    const state = gameStore.get();
-    if (state.status !== 'playing') return false;
+    const initialState = gameStore.get();
+    if (initialState.status !== 'playing') return false;
 
     this.hooks.bus.emit({ type: 'key:press', key });
 
@@ -95,22 +92,25 @@ export class GameEngine {
     const responseMs = hitMole(target, performance.now());
     this.hooks.bus.emit({ type: 'mole:hit', mole: target, responseMs });
 
-    const newCombo = state.combo + 1;
-    const newMaxCombo = Math.max(state.maxCombo, newCombo);
+    // Read current state again in case a tick ran during the find() above
+    const currentState = gameStore.get();
+    const newCombo = currentState.combo + 1;
+    const newMaxCombo = Math.max(currentState.maxCombo, newCombo);
     const points = calcScore(
       responseMs,
       this.hooks.level.difficulty * this.hooks.scene.getDifficultyMultiplier(),
       newCombo
     );
 
-    gameStore.set({
-      score: state.score + points,
+    gameStore.set(prev => ({
+      ...prev,
+      score: prev.score + points,
       combo: newCombo,
       maxCombo: newMaxCombo,
-      hits: state.hits + 1,
-      responseTimes: [...state.responseTimes, responseMs],
+      hits: prev.hits + 1,
+      responseTimes: [...prev.responseTimes, responseMs],
       recentHitKey: key
-    });
+    }));
     return true;
   }
 
@@ -118,46 +118,56 @@ export class GameEngine {
     const state = gameStore.get();
     if (state.status !== 'playing') return;
 
-    this.state = state;
-    this.state.elapsedMs = now - (state.startTime ?? now);
+    const elapsedMs = now - (state.startTime ?? now);
+    let missedAny = 0;
+    let shouldFail: string | null = null;
 
     for (const m of this.currentMoles) {
       const before = m.state;
       advanceMole(m, this.hooks.level.moles.stayTime, now);
       if (before === 'active' && m.state === 'retreating') {
-        const s = gameStore.get();
-        gameStore.set({
-          misses: s.misses + 1,
-          combo: 0,
-          lives: s.lives - 1
-        });
+        missedAny += 1;
         this.hooks.bus.emit({ type: 'mole:miss', holeIndex: m.holeIndex });
-        if (s.lives - 1 <= 0) this.fail('lives_exhausted');
       }
       if (m.state === 'hidden' && before !== 'hidden') {
         this.hooks.bus.emit({ type: 'mole:timeout', mole: m });
       }
+      if (state.lives - missedAny <= 0) {
+        shouldFail = 'lives_exhausted';
+        break;
+      }
     }
+
     this.currentMoles = this.currentMoles.filter(m => m.state !== 'hidden');
 
     this.spawner.tick(this.currentMoles);
 
-    const updated = gameStore.get();
-    gameStore.set({
-      elapsedMs: this.state.elapsedMs,
+    // Batch all state mutations into ONE set call to avoid double subscriber fires
+    gameStore.set(prev => ({
+      ...prev,
+      ...(missedAny > 0 ? { misses: prev.misses + missedAny, combo: 0, lives: Math.max(0, prev.lives - missedAny) } : {}),
+      elapsedMs,
       activeMoles: [...this.currentMoles]
-    });
+    }));
 
+    const updated = gameStore.get();
     const win = this.hooks.level.winCondition;
-    if (win.type === 'score' && updated.score >= win.target) {
-      this.win();
-      return;
-    } else if (win.type === 'hits' && updated.hits >= win.target) {
-      this.win();
+    const elapsedSec = elapsedMs / 1000;
+
+    if (shouldFail) {
+      this.fail(shouldFail);
       return;
     }
 
-    if (this.state.elapsedMs >= this.hooks.level.duration * 1000) {
+    if (win.type === 'score' && updated.score >= win.target) {
+      this.win();
+      return;
+    }
+    if (win.type === 'hits' && updated.hits >= win.target) {
+      this.win();
+      return;
+    }
+    if (elapsedSec >= this.hooks.level.duration) {
       if (updated.score >= this.hooks.level.winCondition.target) this.win();
       else this.fail('time_up');
     }

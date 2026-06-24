@@ -3,6 +3,9 @@ import { gameStore } from '@/store';
 
 export function bindKeyboard(engine: GameEngine): () => void {
   function onKeyDown(e: KeyboardEvent) {
+    // Ignore IME composition and key repeat
+    if (e.isComposing || e.keyCode === 229 || e.repeat) return;
+    // Ignore browser modifier shortcuts
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (e.key === 'Escape') {
