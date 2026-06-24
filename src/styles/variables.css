@@ -1,26 +1,47 @@
 :root {
-  /* Colors */
-  --color-primary: #FFB347;
-  --color-secondary: #6BCB77;
-  --color-accent: #FF6B6B;
-  --color-sky-top: #87CEEB;
-  --color-sky-bottom: #FFB6C1;
-  --color-earth: #8B4513;
-  --color-text: #3D2914;
-  --color-text-muted: #7A5C3F;
-  --color-surface: #FFF8E7;
-  --color-success: #6BCB77;
-  --color-error: #FF6B6B;
+  /* Paper (background) */
+  --color-paper: #F5EBD7;
+  --color-paper-shadow: #E8DAB8;
+  --color-paper-warm: #FAF3E0;
+
+  /* Ink (text + outlines) */
+  --color-ink: #2C1810;
+  --color-ink-muted: #7A5C3F;
+
+  /* Spot colors */
+  --color-vermilion: #C44536;   /* 印章 / 强调 / miss */
+  --color-ochre: #D4673A;       /* 猴子 / 数字徽章 */
+  --color-moss: #5A8068;        /* 草地 / success */
+  --color-haze: #7BA7BC;        /* 远山 / 天空高部 */
+  --color-honey: #DAA520;       /* 成就 / 解锁 */
+
+  /* Semantic */
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-muted);
+  --color-primary: var(--color-ochre);
+  --color-secondary: var(--color-moss);
+  --color-accent: var(--color-vermilion);
+  --color-success: var(--color-moss);
+  --color-error: var(--color-vermilion);
+  --color-surface: var(--color-paper-warm);
 
   /* Badge colors */
-  --color-bronze: #CD7F32;
-  --color-silver: #C0C0C0;
-  --color-gold:   #FFD700;
-  --color-diamond:#B9F2FF;
+  --color-bronze: #B87333;
+  --color-silver: #A8A29E;
+  --color-gold: #DAA520;
+  --color-diamond: #B9D9D9;
+
+  /* Sky gradient stops */
+  --color-sky-top: var(--color-haze);
+  --color-sky-bottom: #F2C9A7;
+
+  /* Earth */
+  --color-earth: #8B6F47;
 
   /* Fonts */
-  --font-display: 'Baloo 2', 'Comic Sans MS', system-ui;
-  --font-ui: 'Nunito', system-ui, sans-serif;
+  --font-display: 'ZCOOL KuaiLe', 'Ma Shan Zheng', 'STKaiti', system-ui;
+  --font-display-en: 'Fraunces', 'Georgia', serif;
+  --font-ui: 'Noto Sans SC', 'Nunito', system-ui, sans-serif;
   --font-key: 'JetBrains Mono', 'Menlo', monospace;
 
   /* Spacing */
@@ -30,7 +51,13 @@
   /* Radius */
   --radius-sm: 6px; --radius-md: 12px; --radius-lg: 24px;
 
-  /* Shadow */
-  --shadow-soft: 0 4px 12px rgba(0,0,0,0.15);
-  --shadow-strong: 0 8px 24px rgba(0,0,0,0.25);
+  /* Shadow (warm, not cool) */
+  --shadow-soft: 0 4px 12px rgba(44, 24, 16, 0.15);
+  --shadow-strong: 0 8px 24px rgba(44, 24, 16, 0.25);
+
+  /* Paper texture (CSS dots) */
+  --paper-texture:
+    radial-gradient(circle at 20% 30%, rgba(44,24,16,0.04) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(44,24,16,0.03) 1px, transparent 1px);
+  --paper-texture-size: 8px 8px, 12px 12px;
 }
