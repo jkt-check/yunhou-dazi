@@ -1,23 +1,42 @@
 import type { GameEngine } from './engine';
+import { bindKeyboard } from '@/input/keyboard';
+import { createVirtualKeyboard } from '@/input/virtualKeyboard';
 import { gameStore } from '@/store';
 
-export function bindKeyboard(engine: GameEngine): () => void {
-  function onKeyDown(e: KeyboardEvent) {
-    // Ignore IME composition and key repeat
-    if (e.isComposing || e.keyCode === 229 || e.repeat) return;
-    // Ignore browser modifier shortcuts
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
+export interface InputCleanup {
+  unbind: () => void;
+  unsub: () => void;
+}
 
-    if (e.key === 'Escape') {
+export function setupInput(
+  engine: GameEngine,
+  vkbRoot: HTMLElement
+): InputCleanup {
+  const vkb = createVirtualKeyboard(vkbRoot, {
+    targetKey: null,
+    onKey: (e) => engine.handleKey(e.key)
+  });
+
+  const unbind = bindKeyboard(({ key }) => {
+    vkb.highlight(key, true);
+    setTimeout(() => vkb.highlight(key, false), 100);
+
+    if (key === 'Escape') {
       const status = gameStore.get().status;
       if (status === 'playing') engine.pause();
       else if (status === 'paused') engine.resume();
       return;
     }
+    engine.handleKey(key);
+  });
 
-    engine.handleKey(e.key);
-  }
+  const unsub = gameStore.subscribeWithSelector(
+    s => s.activeMoles.find(m => m.state === 'active' || m.state === 'rising')?.key ?? null,
+    (key) => vkb.setTargetHighlight(key)
+  );
 
-  window.addEventListener('keydown', onKeyDown);
-  return () => window.removeEventListener('keydown', onKeyDown);
+  return {
+    unbind,
+    unsub: () => { unsub(); vkb.destroy(); }
+  };
 }
