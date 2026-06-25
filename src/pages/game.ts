@@ -12,7 +12,7 @@ import { renderResultModal } from '@/ui/resultModal';
 import { showToast } from '@/ui/components/modal';
 import { checkAchievements, getAllRules, accumulateAchievementStats } from '@/achievements/engine';
 import { gameStore, achievementsStore, settingsStore } from '@/store';
-import { audio } from '@/audio/audioEngine';
+import { createAudioDirector } from '@/audio/audioDirector';
 import { HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
 export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
@@ -72,23 +72,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     tauntBubble.show(e.text, x, y, 550);
   });
 
-  const audioHandlers = [
-    bus.on('achievement:unlocked', () => {
-      if (!settingsStore.get().sfxEnabled) return;
-      audio.resume();
-      audio.unlock();
-    }),
-    bus.on('level:complete', () => {
-      if (!settingsStore.get().sfxEnabled) return;
-      audio.resume();
-      audio.win();
-    }),
-    bus.on('level:fail', () => {
-      if (!settingsStore.get().sfxEnabled) return;
-      audio.resume();
-      audio.lose();
-    })
-  ];
+  const audioDirector = createAudioDirector(bus, settingsStore);
 
   const unsubBus = bus.on('level:complete', (e) => {
     const stars = gameStore.get().starsEarned;
@@ -157,7 +141,7 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     unsubBus2();
     unsubAch();
     unsubTaunt();
-    audioHandlers.forEach(unsub => unsub());
+    audioDirector.stop();
     gameCanvas.destroy();
     tauntBubble.destroy();
   };
