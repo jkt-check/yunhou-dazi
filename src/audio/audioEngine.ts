@@ -202,8 +202,7 @@ class AudioEngine {
     if (!this.bgmPlaying || !this.ctx || !this.bgmGain) return;
     const now = performance.now();
     const elapsed = now - this.bgmStartedAt;
-    const loopMs = this.bgmNotes.reduce((s, n) => s + n.durMs, 0);
-    // Schedule every note whose start time has passed but is within 100ms lookahead
+        // Schedule every note whose start time has passed but is within 100ms lookahead
     while (this.bgmCursor * 300 < elapsed + 100) {
       const idx = this.bgmCursor % this.bgmNotes.length;
       const note = this.bgmNotes[idx];
@@ -212,7 +211,7 @@ class AudioEngine {
         const gain = this.ctx.createGain();
         osc.type = 'square';
         osc.frequency.value = note.freq;
-        gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.40, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + note.durMs / 1000);
         osc.connect(gain).connect(this.bgmGain);
         osc.start();
@@ -225,9 +224,7 @@ class AudioEngine {
       this.bgmCursor = this.bgmCursor % this.bgmNotes.length;
       this.bgmStartedAt = now - (this.bgmCursor * 300);
     }
-    // Suppress unused-var warning
-    void loopMs;
-  };
+      };
 
   startBgm() {
     this.play(() => {
