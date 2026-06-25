@@ -4,6 +4,7 @@ import { nextId } from '@/utils/id';
 const RISING_MS = 200;
 const RETREATING_MS = 150;
 const HIT_MS = 100;
+export const TAUNT_MS = 400;
 
 export function createMole(opts: {
   id?: string;
@@ -25,23 +26,29 @@ export function createMole(opts: {
 
 export function advanceMole(m: Mole, stayTime: number, nowMs: number): MoleState | null {
   const age = nowMs - m.appearAt;
-  let next: MoleState | null = null;
-  switch (m.state) {
-    case 'rising':
-      if (age >= RISING_MS) next = 'active';
-      break;
-    case 'active':
-      if (age >= RISING_MS + stayTime) next = 'retreating';
-      break;
-    case 'retreating':
-      if (age >= RISING_MS + stayTime + RETREATING_MS) next = 'hidden';
-      break;
-    case 'hit':
-      if (m.hitAt && nowMs - m.hitAt >= HIT_MS) next = 'hidden';
-      break;
+  let lastTransition: MoleState | null = null;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    switch (m.state) {
+      case 'rising':
+        if (age >= RISING_MS) { m.state = 'active'; changed = true; lastTransition = 'active'; }
+        break;
+      case 'active':
+        if (age >= RISING_MS + stayTime) { m.state = 'taunting'; changed = true; lastTransition = 'taunting'; }
+        break;
+      case 'taunting':
+        if (age >= RISING_MS + stayTime + TAUNT_MS) { m.state = 'retreating'; changed = true; lastTransition = 'retreating'; }
+        break;
+      case 'retreating':
+        if (age >= RISING_MS + stayTime + TAUNT_MS + RETREATING_MS) { m.state = 'hidden'; changed = true; lastTransition = 'hidden'; }
+        break;
+      case 'hit':
+        if (m.hitAt && nowMs - m.hitAt >= HIT_MS) { m.state = 'hidden'; changed = true; lastTransition = 'hidden'; }
+        break;
+    }
   }
-  if (next) m.state = next;
-  return next;
+  return lastTransition;
 }
 
 export function hitMole(m: Mole, now: number): number {
