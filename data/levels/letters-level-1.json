@@ -13,5 +13,5 @@
   },
   "difficulty": 1,
   "winCondition": { "type": "score", "target": 200 },
-  "loseCondition": { "type": "misses", "max": 5 }
+  "loseCondition": { "type": "misses", "max": 8 }
 }
