@@ -14,7 +14,14 @@ const initial: GameState = {
   responseTimes: [],
   activeMoles: [],
   recentHitKey: null,
-  startTime: null
+  startTime: null,
+  // 新增 (v2)
+  comboTier: 1,
+  comboStarCount: 0,
+  lastTierUpgradeAt: 0,
+  lastTier: 1,
+  currentTaunt: null,
+  starsEarned: 0
 };
 
 export const gameStore = createStore<GameState>(initial);
