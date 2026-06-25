@@ -6,7 +6,7 @@ describe('eventBus', () => {
     const bus = createEventBus();
     const fn = vi.fn();
     bus.on('mole:hit', fn);
-    bus.emit({ type: 'mole:hit', mole: { id: '1' } as any, responseMs: 100 });
+    bus.emit({ type: 'mole:hit', mole: { id: '1' } as any, responseMs: 100, tier: 1 });
     expect(fn).toHaveBeenCalledOnce();
   });
 
@@ -15,7 +15,7 @@ describe('eventBus', () => {
     const fn = vi.fn();
     const unsub = bus.on('mole:hit', fn);
     unsub();
-    bus.emit({ type: 'mole:hit', mole: { id: '1' } as any, responseMs: 100 });
+    bus.emit({ type: 'mole:hit', mole: { id: '1' } as any, responseMs: 100, tier: 1 });
     expect(fn).not.toHaveBeenCalled();
   });
 
