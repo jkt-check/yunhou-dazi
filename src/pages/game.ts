@@ -7,10 +7,13 @@ import { getScene } from '@/scenes/types';
 import { createGameCanvas } from '@/render/canvas';
 import { startRenderer } from '@/render/renderer';
 import { createHUD } from '@/ui/hud';
+import { TauntBubble } from '@/ui/tauntBubble';
+import { renderResultModal } from '@/ui/resultModal';
 import { showToast } from '@/ui/components/modal';
 import { checkAchievements, getAllRules, accumulateAchievementStats } from '@/achievements/engine';
 import { gameStore, achievementsStore, settingsStore } from '@/store';
 import { audio } from '@/audio/audioEngine';
+import { HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
 export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const levelId = parseInt(ctx.query.level ?? '1', 10);
@@ -47,45 +50,29 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const hud = createHUD(hudMount);
   const gameCanvas = createGameCanvas(canvasMount);
   const bus = createEventBus();
-  const renderer = startRenderer({ canvas: gameCanvas, scene, level });
+  const tauntBubble = new TauntBubble();
+  tauntBubble.mount(canvasMount);
+  const renderer = startRenderer({ canvas: gameCanvas, scene, level, bus });
 
   const engine = new GameEngine({ scene, bus, level });
   const input = vkbMount
     ? setupInput(engine, vkbMount)
     : { unbind: () => {}, unsub: () => {} };
 
-  // Result modal
-  function showResultModal(title: string, bodyHTML: string) {
-    root.insertAdjacentHTML('beforeend', `
-      <div class="modal-backdrop">
-        <div class="modal anim-pop">
-          <h2>${title}</h2>
-          ${bodyHTML}
-          <div class="modal-actions">
-            <button data-action="replay">重玩</button>
-            <a href="#/">回主页</a>
-          </div>
-        </div>
-      </div>
-    `);
-    root.querySelector('[data-action="replay"]')?.addEventListener('click', () => {
-      window.location.reload();
-    });
-  }
+  // Taunt positioning: position bubble at the mole's hole
+  const unsubTaunt = bus.on('mole:taunt', (e) => {
+    const w = canvasMount.clientWidth;
+    const h = canvasMount.clientHeight;
+    const col = e.mole.holeIndex % HOLES_COLS;
+    const row = Math.floor(e.mole.holeIndex / HOLES_COLS);
+    const cellW = w / (HOLES_COLS + 1);
+    const cellH = (h * 0.45) / (HOLES_ROWS + 1);
+    const x = cellW * (col + 1);
+    const y = h * 0.58 + cellH * row - 60;
+    tauntBubble.show(e.text, x, y, 550);
+  });
 
-  // Audio wiring
   const audioHandlers = [
-    bus.on('mole:hit', () => {
-      if (!settingsStore.get().sfxEnabled) return;
-      audio.resume();
-      audio.hit();
-      if (gameStore.get().combo >= 10) audio.combo();
-    }),
-    bus.on('mole:miss', () => {
-      if (!settingsStore.get().sfxEnabled) return;
-      audio.resume();
-      audio.miss();
-    }),
     bus.on('achievement:unlocked', () => {
       if (!settingsStore.get().sfxEnabled) return;
       audio.resume();
@@ -104,17 +91,38 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   ];
 
   const unsubBus = bus.on('level:complete', (e) => {
-    showResultModal('🎉 通关', `
-      <ul class="result-stats">
-        <li>分数: <strong>${e.stats.score}</strong></li>
-        <li>命中: ${e.stats.hits} / 失误: ${e.stats.misses}</li>
-        <li>最高连击: ${e.stats.maxCombo}</li>
-        <li>平均反应: <strong>${Math.round(e.stats.avgResponseMs)}ms</strong></li>
-      </ul>
-    `);
+    const stars = gameStore.get().starsEarned;
+    renderResultModal(root, {
+      outcome: 'won',
+      title: '🎉 通关',
+      stats: e.stats,
+      stars
+    });
+    root.querySelector('[data-action="replay"]')?.addEventListener('click', () => {
+      window.location.reload();
+    });
   });
-  const unsubBus2 = bus.on('level:fail', (e) => {
-    showResultModal('💔 失败', `<p>原因: ${e.reason}</p>`);
+  const unsubBus2 = bus.on('level:fail', (_e) => {
+    const s = gameStore.get();
+    renderResultModal(root, {
+      outcome: 'lost',
+      title: '继续加油!',
+      stats: {
+        levelId: s.currentLevel,
+        score: s.score,
+        hits: s.hits,
+        misses: s.misses,
+        maxCombo: s.maxCombo,
+        avgResponseMs: s.responseTimes.length
+          ? s.responseTimes.reduce((a, v) => a + v, 0) / s.responseTimes.length
+          : 0,
+        durationMs: s.elapsedMs
+      },
+      stars: 0
+    });
+    root.querySelector('[data-action="replay"]')?.addEventListener('click', () => {
+      window.location.reload();
+    });
   });
 
   // Achievement wiring
@@ -124,19 +132,16 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     const gameState = gameStore.get();
     const achState = achievementsStore.get();
     const newIds = checkAchievements(gameState, achState);
-
     const unlocked: Record<string, number> = { ...achState.unlocked };
     for (const id of newIds) {
       unlocked[id] = Date.now();
       const rule = allRules.find(r => r.id === id);
       if (rule) showToast(rule.name ?? id, rule.icon ?? '✨');
     }
-
     achievementsStore.set(prev => ({
       unlocked,
       stats: accumulateAchievementStats(prev.stats, gameState)
     }));
-
     for (const id of newIds) bus.emit({ type: 'achievement:unlocked', id });
   });
 
@@ -151,7 +156,9 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     unsubBus();
     unsubBus2();
     unsubAch();
+    unsubTaunt();
     audioHandlers.forEach(unsub => unsub());
     gameCanvas.destroy();
+    tauntBubble.destroy();
   };
 }

@@ -6,6 +6,7 @@ import { ParticleSystem } from './effects';
 import { MonkeyAnimations } from './monkeyAnimations';
 import type { Scene } from '@/scenes/types';
 import type { LevelConfig } from '@/types/game';
+import type { EventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import { HOLES_TOTAL, HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
@@ -27,7 +28,7 @@ export interface RendererOpts {
   canvas: GameCanvas;
   scene: Scene;
   level: LevelConfig;
-  bus: any;  // EventBus (typed loosely here to avoid circular imports; Task 20 will tighten)
+  bus: EventBus;
 }
 
 export function startRenderer(opts: RendererOpts): () => void {
