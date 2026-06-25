@@ -6,8 +6,8 @@ beforeEach(() => localStorage.clear());
 describe('settingsStore shape (regression: GAP-2/GAP-3)', () => {
   it('has the documented fields and nothing more', () => {
     const s = settingsStore.get();
-    expect(Object.keys(s).sort()).toEqual(['sfxEnabled', 'showVirtualKeyboard', 'theme', 'volume']);
-    expect(s).not.toHaveProperty('bgmEnabled');
+    expect(Object.keys(s).sort()).toEqual(['bgmEnabled', 'sfxEnabled', 'showVirtualKeyboard', 'theme', 'volume']);
+    expect(s.bgmEnabled).toBe(true);
   });
 
   it('initial theme is the default union member', () => {
@@ -22,12 +22,19 @@ describe('settingsStore shape (regression: GAP-2/GAP-3)', () => {
     }
   });
 
+  it('bgmEnabled persists through localStorage round-trip', () => {
+    settingsStore.set({ bgmEnabled: false });
+    const raw = JSON.parse(localStorage.getItem('yunhou:settings')!);
+    expect(raw.bgmEnabled).toBe(false);
+    settingsStore.set({ bgmEnabled: true });  // restore
+  });
+
   it('hydrates from localStorage and drops unknown fields', () => {
-    // Simulate an old v0.2 payload that still had bgmEnabled
+    // Simulate an old v0.2 payload that had a truly unknown field
     localStorage.setItem('yunhou:settings', JSON.stringify({
       volume: 0.4,
       sfxEnabled: false,
-      bgmEnabled: true,         // should be dropped on hydrate
+      legacyOldField: 'x',      // should be dropped on hydrate (truly unknown)
       showVirtualKeyboard: false,
       theme: 'sepia'
     }));
@@ -36,7 +43,7 @@ describe('settingsStore shape (regression: GAP-2/GAP-3)', () => {
     settingsStore.set({ volume: 0 });   // trigger persist + reload manually
     const raw = localStorage.getItem('yunhou:settings')!;
     const parsed = JSON.parse(raw);
-    // The whitelist is enforced on persist too — bgmEnabled must NOT round-trip.
-    expect(parsed).not.toHaveProperty('bgmEnabled');
+    // The whitelist is enforced on persist too — legacyOldField must NOT round-trip.
+    expect(parsed).not.toHaveProperty('legacyOldField');
   });
 });
