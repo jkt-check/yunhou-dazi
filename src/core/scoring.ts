@@ -16,3 +16,14 @@ export function calcAverage(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((s, v) => s + v, 0) / values.length;
 }
+
+export function comboTier(combo: number): 1 | 2 | 3 | 4 {
+  if (combo >= 20) return 4;
+  if (combo >= 10) return 3;
+  if (combo >= 5) return 2;
+  return 1;
+}
+
+export function scoreMultiplier(tier: 1 | 2 | 3 | 4): number {
+  return [1.0, 1.2, 1.5, 2.0][tier - 1];
+}
