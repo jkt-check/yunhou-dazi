@@ -13,6 +13,8 @@ export interface Scene {
   renderKey(ctx: CanvasRenderingContext2D, key: string, x: number, y: number): void;
   matches(input: string[], target: string): boolean;
   getDifficultyMultiplier(): number;
+  /** Optional: scene-specific taunt text. Defaults to generic pool. */
+  getTauntText?(): string;
 }
 
 export const scenes: Record<string, Scene> = {};

@@ -3,8 +3,15 @@ import type { EventBus } from './eventBus';
 import { Spawner } from './spawner';
 import { advanceMole, hitMole } from './mole';
 import { calcScore, calcAverage, comboTier } from './scoring';
+import { nextComboAfterMiss } from './missRule';
 import { gameStore } from '@/store';
 import type { Scene } from '@/scenes/types';
+
+const FALLBACK_TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
+
+function pickTauntText(): string {
+  return FALLBACK_TAUNT_TEXTS[Math.floor(Math.random() * FALLBACK_TAUNT_TEXTS.length)];
+}
 
 export interface EngineHooks {
   scene: Scene;
@@ -136,20 +143,33 @@ export class GameEngine {
     if (state.status !== 'playing') return;
 
     const elapsedMs = now - (state.startTime ?? now);
-    let missedAny = 0;
+    let newMissed = 0;
     let shouldFail: FailReason | null = null;
 
     for (const m of this.currentMoles) {
       const before = m.state;
       advanceMole(m, this.hooks.level.moles.stayTime, now);
-      if (before === 'active' && m.state === 'retreating') {
-        missedAny += 1;
-        this.hooks.bus.emit({ type: 'mole:miss', holeIndex: m.holeIndex });
+
+      // Detect transition INTO taunting (mole timed out from active window)
+      if (before === 'active' && m.state === 'taunting') {
+        const text = this.hooks.scene.getTauntText
+          ? this.hooks.scene.getTauntText()
+          : pickTauntText();
+        this.hooks.bus.emit({ type: 'mole:taunt', mole: m, text });
+        gameStore.set(prev => ({
+          ...prev,
+          currentTaunt: { moleId: m.id, text, x: m.holeIndex, y: 0, startedAt: now }
+        }));
       }
-      if (m.state === 'hidden' && before !== 'hidden') {
+      // Detect transition INTO hidden — NOW it's a miss (taunt + retreating completed)
+      if (before !== 'hidden' && m.state === 'hidden') {
         this.hooks.bus.emit({ type: 'mole:timeout', mole: m });
+        if (before === 'retreating' || before === 'taunting') {
+          newMissed += 1;
+          this.hooks.bus.emit({ type: 'mole:miss', holeIndex: m.holeIndex });
+        }
       }
-      if (state.lives - missedAny <= 0) {
+      if (newMissed > 0 && state.lives - newMissed <= 0) {
         shouldFail = 'lives_exhausted';
         break;
       }
@@ -157,12 +177,27 @@ export class GameEngine {
 
     this.currentMoles = this.currentMoles.filter(m => m.state !== 'hidden');
 
+    // Apply miss consequences (combo protection, lives deduction)
+    if (newMissed > 0) {
+      const newCombo = nextComboAfterMiss(state.combo, newMissed);
+      const comboReset = newCombo === 0 && state.combo > 0;
+      gameStore.set(prev => ({
+        ...prev,
+        misses: prev.misses + newMissed,
+        combo: newCombo,
+        comboTier: comboTier(newCombo),
+        lives: Math.max(0, prev.lives - newMissed),
+        currentTaunt: null
+      }));
+      if (comboReset) {
+        this.hooks.bus.emit({ type: 'combo:reset', from: state.combo });
+      }
+    }
+
     this.spawner.tick(this.currentMoles);
 
-    // Batch all state mutations into ONE set call to avoid double subscriber fires
     gameStore.set(prev => ({
       ...prev,
-      ...(missedAny > 0 ? { misses: prev.misses + missedAny, combo: 0, lives: Math.max(0, prev.lives - missedAny) } : {}),
       elapsedMs,
       activeMoles: [...this.currentMoles]
     }));
@@ -175,7 +210,6 @@ export class GameEngine {
       this.fail(shouldFail);
       return;
     }
-
     if (win.type === 'score' && updated.score >= win.target) {
       this.win();
       return;
