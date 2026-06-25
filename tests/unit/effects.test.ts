@@ -30,15 +30,15 @@ describe('ParticleSystem', () => {
   it('tick() applies gravity and velocity', () => {
     const ps = new ParticleSystem();
     ps.burst(100, 100, 1, '#000');
-    const startY = ps.particles[0].y;
     const startVy = ps.particles[0].vy;
 
     ps.tick(100);  // 100ms
 
     const p = ps.particles[0];
-    expect(p.x).not.toBe(100);  // moved
-    expect(p.y).toBeGreaterThan(startY);  // gravity pulls down
-    expect(p.vy).toBeGreaterThan(startVy);  // vy increased
+    expect(p.x).not.toBe(100);  // moved (x changed due to vx)
+    // y may go up or down depending on initial vy (some particles spawn upward);
+    // gravity uniformly increases vy regardless of initial direction.
+    expect(p.vy).toBeGreaterThan(startVy);  // gravity increases vy
   });
 
   it('floatText() adds a floating text element', () => {
