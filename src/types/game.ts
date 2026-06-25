@@ -1,6 +1,6 @@
 export type GameStatus = 'idle' | 'playing' | 'paused' | 'won' | 'lost';
 
-export type MoleState = 'hidden' | 'rising' | 'active' | 'retreating' | 'hit';
+export type MoleState = 'hidden' | 'rising' | 'active' | 'retreating' | 'hit' | 'taunting';
 
 export interface Mole {
   id: string;
@@ -26,6 +26,13 @@ export interface GameState {
   activeMoles: Mole[];
   recentHitKey: string | null;
   startTime: number | null;
+  // 新增字段 (v2)
+  comboTier: 1 | 2 | 3 | 4;
+  comboStarCount: number;
+  lastTierUpgradeAt: number;
+  lastTier: 1 | 2 | 3 | 4;
+  currentTaunt: { moleId: string; text: string; x: number; y: number; startedAt: number } | null;
+  starsEarned: 0 | 1 | 2 | 3;
 }
 
 export type FailReason = 'lives_exhausted' | 'time_up';
@@ -35,6 +42,10 @@ export type GameEvent =
   | { type: 'mole:hit'; mole: Mole; responseMs: number }
   | { type: 'mole:miss'; holeIndex: number }
   | { type: 'mole:timeout'; mole: Mole }
+  | { type: 'mole:taunt'; mole: Mole; text: string }
+  | { type: 'combo:tier-up'; tier: 1 | 2 | 3 | 4 }
+  | { type: 'combo:reset'; from: number }
+  | { type: 'hit:visual'; mole: Mole; score: number }
   | { type: 'level:start'; levelId: number }
   | { type: 'level:complete'; stats: LevelStats }
   | { type: 'level:fail'; reason: FailReason }
