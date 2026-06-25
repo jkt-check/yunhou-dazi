@@ -14,7 +14,7 @@ describe('renderResultModal', () => {
     renderResultModal(root, {
       outcome: 'won',
       title: '🎉 通关',
-      stats: { score: 500, hits: 30, misses: 0, maxCombo: 25, avgResponseMs: 800, durationMs: 60000 },
+      stats: { levelId: 0, score: 500, hits: 30, misses: 0, maxCombo: 25, avgResponseMs: 800, durationMs: 60000 },
       stars: 3 as StarRating
     });
     const stars = root.querySelectorAll('.star');
@@ -28,7 +28,7 @@ describe('renderResultModal', () => {
     renderResultModal(root, {
       outcome: 'won',
       title: '🎉 通关',
-      stats: { score: 200, hits: 10, misses: 3, maxCombo: 5, avgResponseMs: 1500, durationMs: 60000 },
+      stats: { levelId: 0, score: 200, hits: 10, misses: 3, maxCombo: 5, avgResponseMs: 1500, durationMs: 60000 },
       stars: 1 as StarRating
     });
     const stars = root.querySelectorAll('.star');
@@ -41,7 +41,7 @@ describe('renderResultModal', () => {
     renderResultModal(root, {
       outcome: 'lost',
       title: '继续加油!',
-      stats: { score: 50, hits: 5, misses: 8, maxCombo: 0, avgResponseMs: 2000, durationMs: 60000 },
+      stats: { levelId: 0, score: 50, hits: 5, misses: 8, maxCombo: 0, avgResponseMs: 2000, durationMs: 60000 },
       stars: 0 as StarRating
     });
     expect(root.querySelector('.modal-encouragement')).not.toBeNull();
@@ -51,7 +51,7 @@ describe('renderResultModal', () => {
     renderResultModal(root, {
       outcome: 'lost',
       title: '继续加油!',
-      stats: { score: 50, hits: 5, misses: 8, maxCombo: 0, avgResponseMs: 2000, durationMs: 60000 },
+      stats: { levelId: 0, score: 50, hits: 5, misses: 8, maxCombo: 0, avgResponseMs: 2000, durationMs: 60000 },
       stars: 0 as StarRating
     });
     expect(root.querySelector('.star-rating')).toBeNull();
@@ -61,7 +61,7 @@ describe('renderResultModal', () => {
     renderResultModal(root, {
       outcome: 'won',
       title: '🎉 通关',
-      stats: { score: 500, hits: 30, misses: 0, maxCombo: 25, avgResponseMs: 800, durationMs: 60000 },
+      stats: { levelId: 0, score: 500, hits: 30, misses: 0, maxCombo: 25, avgResponseMs: 800, durationMs: 60000 },
       stars: 3 as StarRating
     });
     expect(root.querySelector('[data-action="replay"]')).not.toBeNull();
