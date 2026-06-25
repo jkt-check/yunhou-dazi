@@ -2,7 +2,7 @@ import type { LevelConfig, Mole, LevelStats, FailReason } from '@/types/game';
 import type { EventBus } from './eventBus';
 import { Spawner } from './spawner';
 import { advanceMole, hitMole } from './mole';
-import { calcScore, calcAverage } from './scoring';
+import { calcScore, calcAverage, comboTier } from './scoring';
 import { gameStore } from '@/store';
 import type { Scene } from '@/scenes/types';
 
@@ -31,7 +31,13 @@ export class GameEngine {
       elapsedMs: 0,
       responseTimes: [],
       activeMoles: [],
-      recentHitKey: null
+      recentHitKey: null,
+      comboTier: 1,
+      comboStarCount: 0,
+      lastTierUpgradeAt: 0,
+      lastTier: 1,
+      currentTaunt: null,
+      starsEarned: 0
     }));
 
     this.spawner = new Spawner({
@@ -94,23 +100,34 @@ export class GameEngine {
 
     // Read current state again in case a tick ran during the find() above
     const currentState = gameStore.get();
+    const prevTier = comboTier(currentState.combo);
     const newCombo = currentState.combo + 1;
-    const newMaxCombo = Math.max(currentState.maxCombo, newCombo);
-    const points = calcScore(
-      responseMs,
-      this.hooks.level.difficulty * this.hooks.scene.getDifficultyMultiplier(),
-      newCombo
-    );
+    const newTier = comboTier(newCombo);
+    const tierUpgraded = newTier > prevTier;
+    const difficulty = this.hooks.level.difficulty * this.hooks.scene.getDifficultyMultiplier();
+    const points = calcScore(responseMs, difficulty, newCombo);
 
     gameStore.set(prev => ({
       ...prev,
       score: prev.score + points,
       combo: newCombo,
-      maxCombo: newMaxCombo,
+      maxCombo: Math.max(prev.maxCombo, newCombo),
       hits: prev.hits + 1,
       responseTimes: [...prev.responseTimes, responseMs],
-      recentHitKey: key
+      recentHitKey: key,
+      comboTier: newTier,
+      lastTier: prevTier,
+      comboStarCount: newTier === 4 ? prev.comboStarCount + 1 : prev.comboStarCount,
+      // Lives refill on tier 4 upgrade, capped at 10 (spec §2.5)
+      ...(tierUpgraded && newTier === 4 && prev.lives < 10 ? { lives: prev.lives + 1 } : {}),
+      ...(tierUpgraded ? { lastTierUpgradeAt: performance.now() } : {})
     }));
+
+    // Emit events AFTER state is committed (avoid subscribers reading stale state)
+    this.hooks.bus.emit({ type: 'hit:visual', mole: target, score: points });
+    if (tierUpgraded) {
+      this.hooks.bus.emit({ type: 'combo:tier-up', tier: newTier });
+    }
     return true;
   }
 
