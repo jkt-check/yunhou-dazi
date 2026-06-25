@@ -124,7 +124,6 @@ describe('GameEngine combo tier-up', () => {
 
 describe('GameEngine lives refill on combo tier-up to 4', () => {
   let engine: GameEngine;
-  let bus: ReturnType<typeof createEventBus>;
 
   beforeEach(async () => {
     gameStore.set(() => ({
@@ -134,7 +133,7 @@ describe('GameEngine lives refill on combo tier-up to 4', () => {
       comboTier: 1, comboStarCount: 0, lastTierUpgradeAt: 0, lastTier: 1,
       currentTaunt: null, starsEarned: 0
     }));
-    ({ bus, engine } = await setupEngine());
+    ({ engine } = await setupEngine());
   });
 
   afterEach(() => {

@@ -94,7 +94,10 @@ export class GameEngine {
     const initialState = gameStore.get();
     if (initialState.status !== 'playing') return false;
 
-    this.hooks.bus.emit({ type: 'key:press', key });
+    const hasActiveMole = this.currentMoles.some(
+      (m) => m.state === 'active' || m.state === 'rising'
+    );
+    this.hooks.bus.emit({ type: 'key:press', key, hasActiveMole });
 
     const target = this.currentMoles.find(m =>
       (m.state === 'active' || m.state === 'rising') &&
@@ -104,13 +107,17 @@ export class GameEngine {
     if (!target) return false;
 
     const responseMs = hitMole(target, performance.now());
-    this.hooks.bus.emit({ type: 'mole:hit', mole: target, responseMs });
+
+    // Precompute tier for mole:hit event (tier is based on combo AFTER this hit)
+    const preHitState = gameStore.get();
+    const newCombo = preHitState.combo + 1;
+    const newTier = comboTier(newCombo);
+
+    this.hooks.bus.emit({ type: 'mole:hit', mole: target, responseMs, tier: newTier });
 
     // Read current state again in case a tick ran during the find() above
     const currentState = gameStore.get();
     const prevTier = comboTier(currentState.combo);
-    const newCombo = currentState.combo + 1;
-    const newTier = comboTier(newCombo);
     const tierUpgraded = newTier > prevTier;
     const difficulty = this.hooks.level.difficulty * this.hooks.scene.getDifficultyMultiplier();
     const points = calcScore(responseMs, difficulty, newCombo);
