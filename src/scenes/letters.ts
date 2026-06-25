@@ -2,6 +2,8 @@ import type { Scene, SceneContext } from './types';
 import { randIndex } from '@/utils/random';
 import { VERMILION, PAPER_WARM } from '@/render/palette';
 
+const TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
+
 export const lettersScene: Scene = {
   id: 'letters',
   name: '英文字母',
@@ -45,5 +47,9 @@ export const lettersScene: Scene = {
     return input[0].toLowerCase() === target.toLowerCase();
   },
 
-  getDifficultyMultiplier() { return 1.0; }
+  getDifficultyMultiplier() { return 1.0; },
+
+  getTauntText() {
+    return TAUNT_TEXTS[randIndex(TAUNT_TEXTS.length)];
+  }
 };
