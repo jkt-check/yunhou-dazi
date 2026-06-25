@@ -75,4 +75,25 @@ export class ParticleSystem {
     this.particles = [];
     this.floatingTexts = [];
   }
+
+  draw(ctx: CanvasRenderingContext2D): void {
+    for (const p of this.particles) {
+      const alpha = 1 - p.life / p.maxLife;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (const ft of this.floatingTexts) {
+      const alpha = 1 - ft.life / ft.maxLife;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.fillStyle = ft.color;
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.text, ft.x, ft.y);
+    }
+    ctx.globalAlpha = 1;
+  }
 }

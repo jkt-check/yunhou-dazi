@@ -2,6 +2,8 @@ import type { GameCanvas } from './canvas';
 import { drawMonkey } from './sprites/monkey';
 import { drawMole, drawHole } from './sprites/mole';
 import { drawBackground } from './sprites/background';
+import { ParticleSystem } from './effects';
+import { MonkeyAnimations } from './monkeyAnimations';
 import type { Scene } from '@/scenes/types';
 import type { LevelConfig } from '@/types/game';
 import { gameStore } from '@/store';
@@ -9,7 +11,6 @@ import { HOLES_TOTAL, HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
 const RISING_MS = 200;
 const RETREATING_MS = 150;
-const SWING_MS = 300;
 
 function getHolePos(index: number, w: number, h: number): { x: number; y: number } {
   const col = index % HOLES_COLS;
@@ -26,23 +27,16 @@ export interface RendererOpts {
   canvas: GameCanvas;
   scene: Scene;
   level: LevelConfig;
+  bus: any;  // EventBus (typed loosely here to avoid circular imports; Task 20 will tighten)
 }
 
 export function startRenderer(opts: RendererOpts): () => void {
-  const { canvas: gc, scene, level } = opts;
+  const { canvas: gc, scene, level, bus } = opts;
   const stayTime = level.moles.stayTime;
   const fullActiveMs = RISING_MS + stayTime;
   const { ctx, el } = gc;
-  let lastSwingAt = 0;
-  let swing = false;
-
-  const unsub = gameStore.subscribeWithSelector(
-    s => s.recentHitKey,
-    () => {
-      swing = true;
-      lastSwingAt = performance.now();
-    }
-  );
+  const particles = new ParticleSystem();
+  const monkeyAnim = new MonkeyAnimations();
 
   // roundRect polyfill
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -60,15 +54,38 @@ export function startRenderer(opts: RendererOpts): () => void {
     };
   }
 
+  const unsubs = [
+    bus.on('hit:visual', (e: any) => {
+      const { x, y } = getHolePos(e.mole.holeIndex, el.clientWidth, el.clientHeight);
+      const tier = gameStore.get().comboTier;
+      particles.burst(x, y, tier, '#2C1810');
+      particles.floatText(`+${e.score}`, x, y - 30, '#C44536');
+      monkeyAnim.setState('hit');
+    }),
+    bus.on('combo:tier-up', (_e: any) => {
+      monkeyAnim.setState('combo');
+    }),
+    bus.on('mole:taunt', (_e: any) => {
+      monkeyAnim.setState('taunt');
+    }),
+    bus.on('mole:miss', (_e: any) => {
+      monkeyAnim.setState('miss');
+    })
+  ];
+
   let rafId: number | null = null;
   let stopped = false;
+  let lastFrameTime = performance.now();
 
   function frame() {
     if (stopped) return;
+    const now = performance.now();
+    const dt = now - lastFrameTime;
+    lastFrameTime = now;
+
     const state = gameStore.get();
     const w = el.clientWidth;
     const h = el.clientHeight;
-    // Guard: hidden canvas (w/h === 0) would draw every mole at origin
     if (w === 0 || h === 0) {
       rafId = requestAnimationFrame(frame);
       return;
@@ -84,22 +101,28 @@ export function startRenderer(opts: RendererOpts): () => void {
 
     for (const m of state.activeMoles) {
       const { x, y } = getHolePos(m.holeIndex, w, h);
-      const age = performance.now() - m.appearAt;
+      const age = now - m.appearAt;
       let progress = 1;
       if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
-      else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - fullActiveMs) / RETREATING_MS);
+      else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (fullActiveMs + 400)) / RETREATING_MS);
       else if (m.state === 'hit') progress = 1;
 
       const yOffset = (1 - progress) * 40;
-      drawMole(ctx, x, y + yOffset, progress, m.state === 'hit');
+      const mode = m.state === 'taunting' ? 'taunt' : 'normal';
+      drawMole(ctx, x, y + yOffset, progress, m.state === 'hit', mode);
 
       if (m.state === 'rising' || m.state === 'active') {
         scene.renderKey(ctx, m.key, x, y - 50);
       }
     }
 
-    const swinging = swing && (performance.now() - lastSwingAt) < SWING_MS;
-    drawMonkey(ctx, w * 0.18, h * 0.22, swinging);
+    // Tick and draw particles
+    particles.tick(dt);
+    particles.draw(ctx);
+
+    // Tick monkey animations and draw monkey
+    monkeyAnim.tick();
+    drawMonkey(ctx, w * 0.18, h * 0.22, monkeyAnim.getCurrentState(), monkeyAnim.getStateAge());
 
     rafId = requestAnimationFrame(frame);
   }
@@ -109,6 +132,6 @@ export function startRenderer(opts: RendererOpts): () => void {
   return () => {
     stopped = true;
     if (rafId !== null) cancelAnimationFrame(rafId);
-    unsub();
+    unsubs.forEach(u => u());
   };
 }
