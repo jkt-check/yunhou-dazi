@@ -39,7 +39,7 @@ export type FailReason = 'lives_exhausted' | 'time_up';
 
 export type GameEvent =
   | { type: 'mole:spawn'; mole: Mole }
-  | { type: 'mole:hit'; mole: Mole; responseMs: number }
+  | { type: 'mole:hit'; mole: Mole; responseMs: number; tier: 1 | 2 | 3 | 4 }
   | { type: 'mole:miss'; holeIndex: number }
   | { type: 'mole:timeout'; mole: Mole }
   | { type: 'mole:taunt'; mole: Mole; text: string }
@@ -50,7 +50,7 @@ export type GameEvent =
   | { type: 'level:complete'; stats: LevelStats }
   | { type: 'level:fail'; reason: FailReason }
   | { type: 'achievement:unlocked'; id: string }
-  | { type: 'key:press'; key: string }
+  | { type: 'key:press'; key: string; hasActiveMole: boolean }
   | { type: 'game:pause' }
   | { type: 'game:resume' };
 
