@@ -125,3 +125,39 @@ describe('GameEngine taunt flow', () => {
     expect(gameStore.get().misses).toBe(2);
   });
 });
+
+describe('GameEngine rating on win', () => {
+  let engine: GameEngine;
+  let bus: ReturnType<typeof createEventBus>;
+
+  beforeEach(() => {
+    gameStore.set(() => ({
+      status: 'playing', currentLevel: 99, score: 0, combo: 0, maxCombo: 0,
+      hits: 0, misses: 0, lives: 999, elapsedMs: 0, responseTimes: [],
+      activeMoles: [], recentHitKey: null, startTime: 0,
+      comboTier: 1, comboStarCount: 0, lastTierUpgradeAt: 0, lastTier: 1,
+      currentTaunt: null, starsEarned: 0
+    }));
+    bus = createEventBus();
+    engine = new GameEngine({ scene: mockScene, bus, level: mockLevel });
+    engine.stop();
+  });
+
+  it('sets starsEarned = 3 on perfect run (no misses, combo 25, hits >= target)', () => {
+    const winLevel = { ...mockLevel, winCondition: { type: 'score' as const, target: 100 } };
+    const eng = new GameEngine({ scene: mockScene, bus, level: winLevel });
+    eng.stop();
+    gameStore.set(prev => ({ ...prev, score: 500, hits: 100, misses: 0, maxCombo: 25 }));
+    eng['win']();
+    expect(gameStore.get().starsEarned).toBe(3);
+  });
+
+  it('sets starsEarned = 0 when hits below target', () => {
+    const winLevel = { ...mockLevel, winCondition: { type: 'score' as const, target: 1000 } };
+    const eng = new GameEngine({ scene: mockScene, bus, level: winLevel });
+    eng.stop();
+    gameStore.set(prev => ({ ...prev, score: 100, hits: 5, misses: 0, maxCombo: 25 }));
+    eng['win']();
+    expect(gameStore.get().starsEarned).toBe(0);
+  });
+});

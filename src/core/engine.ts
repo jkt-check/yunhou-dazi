@@ -4,6 +4,7 @@ import { Spawner } from './spawner';
 import { advanceMole, hitMole } from './mole';
 import { calcScore, calcAverage, comboTier } from './scoring';
 import { nextComboAfterMiss } from './missRule';
+import { calcStars } from './rating';
 import { gameStore } from '@/store';
 import type { Scene } from '@/scenes/types';
 
@@ -225,9 +226,13 @@ export class GameEngine {
   }
 
   private win() {
-    gameStore.set({ status: 'won' });
-    this.stop();
     const stats = this.collectStats();
+    const rating = calcStars(
+      { misses: stats.misses, maxCombo: stats.maxCombo },
+      { hits: stats.hits, target: this.hooks.level.winCondition.target }
+    );
+    gameStore.set(prev => ({ ...prev, status: 'won', starsEarned: rating }));
+    this.stop();
     this.hooks.bus.emit({ type: 'level:complete', stats });
   }
 
