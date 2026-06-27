@@ -37,6 +37,10 @@ export function renderSettings(root: HTMLElement) {
           <input type="checkbox" data-key="bgmEnabled" ${s.bgmEnabled ? 'checked' : ''} />
         </label>
         <label class="setting-row">
+          <span class="setting-label">猴子配音</span>
+          <input type="checkbox" data-key="voiceEnabled" ${s.voiceEnabled ? 'checked' : ''} />
+        </label>
+        <label class="setting-row">
           <span class="setting-label">显示虚拟键盘</span>
           <input type="checkbox" data-key="showVirtualKeyboard" ${s.showVirtualKeyboard ? 'checked' : ''} />
         </label>
