@@ -62,12 +62,14 @@ export class GameEngine {
       this.currentMoles.push(m);
       this.hooks.bus.emit({ type: 'mole:spawn', mole: m });
     });
-
-    this.hooks.bus.emit({ type: 'level:start', levelId: this.hooks.level.id });
-    this.spawner.start();
   }
 
   start() {
+    // Emit level:start here (not in constructor) so that subscribers
+    // attached after construction — like audioDirector in pages/game.ts —
+    // still receive the event. Otherwise BGM never starts.
+    this.hooks.bus.emit({ type: 'level:start', levelId: this.hooks.level.id });
+    this.spawner.start();
     const loop = (t: number) => {
       this.tick(t);
       this.rafId = requestAnimationFrame(loop);

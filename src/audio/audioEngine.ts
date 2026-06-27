@@ -15,6 +15,7 @@ class AudioEngine {
     const bgm = ctx.createGain();
     bgm.gain.value = 0.10;
     gain.connect(ctx.destination);
+    bgm.connect(gain);  // bgm → master → destination, so BGM signal reaches speakers
     this.ctx = ctx;
     this.masterGain = gain;
     this.bgmGain = bgm;
