@@ -1,8 +1,9 @@
 import type { EventBus } from '@/core/eventBus';
 import { audio } from './audioEngine';
+import { voice } from './speechEngine';
 
 export interface SettingsReader {
-  get(): { sfxEnabled: boolean; bgmEnabled: boolean };
+  get(): { sfxEnabled: boolean; bgmEnabled: boolean; voiceEnabled: boolean };
 }
 
 export function createAudioDirector(
@@ -13,6 +14,7 @@ export function createAudioDirector(
 
   const sfxOn = () => settings.get().sfxEnabled;
   const bgmOn = () => settings.get().bgmEnabled;
+  const voiceOn = () => settings.get().voiceEnabled;
 
   unsubs.push(bus.on('mole:spawn', () => {
     if (sfxOn()) audio.playPop();
@@ -20,10 +22,12 @@ export function createAudioDirector(
 
   unsubs.push(bus.on('mole:hit', (e) => {
     if (sfxOn()) audio.hitForTier(e.tier);
+    if (voiceOn()) voice.speak('hit');
   }));
 
   unsubs.push(bus.on('mole:miss', () => {
     if (sfxOn()) audio.miss();
+    if (voiceOn()) voice.speak('miss');
   }));
 
   unsubs.push(bus.on('mole:taunt', () => {
@@ -50,11 +54,13 @@ export function createAudioDirector(
   unsubs.push(bus.on('level:complete', () => {
     audio.stopBgm();
     if (sfxOn()) audio.win();
+    if (voiceOn()) voice.speak('win');
   }));
 
   unsubs.push(bus.on('level:fail', () => {
     audio.stopBgm();
     if (sfxOn()) audio.lose();
+    if (voiceOn()) voice.speak('lose');
   }));
 
   unsubs.push(bus.on('achievement:unlocked', () => {
