@@ -6,7 +6,7 @@ beforeEach(() => localStorage.clear());
 describe('settingsStore shape (regression: GAP-2/GAP-3)', () => {
   it('has the documented fields and nothing more', () => {
     const s = settingsStore.get();
-    expect(Object.keys(s).sort()).toEqual(['bgmEnabled', 'sfxEnabled', 'showVirtualKeyboard', 'theme', 'volume']);
+    expect(Object.keys(s).sort()).toEqual(['bgmEnabled', 'sfxEnabled', 'showVirtualKeyboard', 'theme', 'voiceEnabled', 'volume']);
     expect(s.bgmEnabled).toBe(true);
   });
 

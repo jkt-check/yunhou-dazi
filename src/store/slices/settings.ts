@@ -7,6 +7,7 @@ export interface SettingsState {
   volume: number;
   sfxEnabled: boolean;
   bgmEnabled: boolean;
+  voiceEnabled: boolean;
   showVirtualKeyboard: boolean;
   theme: ThemeName;
 }
@@ -15,6 +16,7 @@ const initial: SettingsState = {
   volume: 0.7,
   sfxEnabled: true,
   bgmEnabled: true,
+  voiceEnabled: true,
   showVirtualKeyboard: true,
   theme: 'default'
 };
@@ -24,5 +26,5 @@ export const settingsStore = createStore<SettingsState>(initial)
     key: 'yunhou:settings',
     // Whitelist: drop unknown fields on hydrate AND on persist, so the localStorage
     // payload stays forward-compatible with future SettingsState shape changes.
-    whitelist: ['volume', 'sfxEnabled', 'bgmEnabled', 'showVirtualKeyboard', 'theme'] as (keyof SettingsState)[]
+    whitelist: ['volume', 'sfxEnabled', 'bgmEnabled', 'voiceEnabled', 'showVirtualKeyboard', 'theme'] as (keyof SettingsState)[]
   }));
