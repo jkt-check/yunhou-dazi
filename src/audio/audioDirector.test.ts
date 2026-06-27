@@ -27,17 +27,27 @@ vi.mock('@/audio/audioEngine', () => {
   };
 });
 
+vi.mock('@/audio/speechEngine', () => ({
+  voice: {
+    speak: vi.fn(),
+    cancel: vi.fn(),
+    setEnabled: vi.fn(),
+    isSupported: vi.fn(() => true)
+  }
+}));
+
 import { createAudioDirector } from '@/audio/audioDirector';
+import { voice } from '@/audio/speechEngine';
 
 describe('audioDirector', () => {
   let bus: ReturnType<typeof createEventBus>;
-  let settings: { get: () => { sfxEnabled: boolean; bgmEnabled: boolean } };
+  let settings: { get: () => { sfxEnabled: boolean; bgmEnabled: boolean; voiceEnabled: boolean } };
   let audioMock: typeof audio;
 
   beforeEach(() => {
     vi.clearAllMocks();
     bus = createEventBus();
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true }) };
     audioMock = audio as any;
   });
 
@@ -133,7 +143,7 @@ describe('audioDirector', () => {
   });
 
   it('plays wrong-key sound on key:press only when sfxEnabled', () => {
-    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'key:press', key: 'q', hasActiveMole: true });
     expect(audioMock.playWrongKey).not.toHaveBeenCalled();
@@ -141,7 +151,7 @@ describe('audioDirector', () => {
   });
 
   it('does not play SFX when sfxEnabled is false (but BGM still starts)', () => {
-    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     bus.emit({ type: 'level:start', levelId: 1 });
@@ -151,7 +161,7 @@ describe('audioDirector', () => {
   });
 
   it('does not start BGM when bgmEnabled is false (but SFX still plays)', () => {
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: false }) };
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     bus.emit({ type: 'level:start', levelId: 1 });
@@ -165,5 +175,64 @@ describe('audioDirector', () => {
     d.stop();
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     expect(audioMock.hitForTier).not.toHaveBeenCalled();
+  });
+
+  describe('voice routing', () => {
+    it('mole:hit triggers voice.speak("hit") when voiceEnabled', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
+      expect(voice.speak).toHaveBeenCalledWith('hit');
+      d.stop();
+    });
+
+    it('mole:miss triggers voice.speak("miss") when voiceEnabled', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'mole:miss', holeIndex: 0 });
+      expect(voice.speak).toHaveBeenCalledWith('miss');
+      d.stop();
+    });
+
+    it('level:complete triggers voice.speak("win") when voiceEnabled', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'level:complete', stats: {} as any });
+      expect(voice.speak).toHaveBeenCalledWith('win');
+      d.stop();
+    });
+
+    it('level:fail triggers voice.speak("lose") when voiceEnabled', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
+      expect(voice.speak).toHaveBeenCalledWith('lose');
+      d.stop();
+    });
+
+    it('voice.speak is NOT called when voiceEnabled is false', () => {
+      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false }) };
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
+      bus.emit({ type: 'mole:miss', holeIndex: 0 });
+      bus.emit({ type: 'level:complete', stats: {} as any });
+      bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
+      expect(voice.speak).not.toHaveBeenCalled();
+      d.stop();
+    });
+
+    it('voice.speak is called even when sfxEnabled is false (voice independent of SFX)', () => {
+      settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
+      expect(audioMock.hitForTier).not.toHaveBeenCalled();
+      expect(voice.speak).toHaveBeenCalledWith('hit');
+      d.stop();
+    });
+
+    it('audio.win is called even when voiceEnabled is false (SFX independent of voice)', () => {
+      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false }) };
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'level:complete', stats: {} as any });
+      expect(audioMock.win).toHaveBeenCalled();
+      expect(voice.speak).not.toHaveBeenCalled();
+      d.stop();
+    });
   });
 });
