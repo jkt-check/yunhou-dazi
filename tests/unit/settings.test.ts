@@ -29,6 +29,15 @@ describe('settingsStore shape (regression: GAP-2/GAP-3)', () => {
     settingsStore.set({ bgmEnabled: true });  // restore
   });
 
+  it('voiceEnabled round-trips as boolean (not "on"/"off" string)', () => {
+    settingsStore.set({ voiceEnabled: false });
+    expect(settingsStore.get().voiceEnabled).toBe(false);
+    expect(typeof settingsStore.get().voiceEnabled).toBe('boolean');
+    const raw = JSON.parse(localStorage.getItem('yunhou:settings')!);
+    expect(raw.voiceEnabled).toBe(false);
+    settingsStore.set({ voiceEnabled: true });  // restore
+  });
+
   it('hydrates from localStorage and drops unknown fields', () => {
     // Simulate an old v0.2 payload that had a truly unknown field
     localStorage.setItem('yunhou:settings', JSON.stringify({

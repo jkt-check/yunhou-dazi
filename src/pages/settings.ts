@@ -5,7 +5,7 @@ export function renderSettings(root: HTMLElement) {
   const s = settingsStore.get();
 
   function readValue(el: HTMLInputElement | HTMLSelectElement, key: keyof SettingsState): unknown {
-    if (key === 'sfxEnabled' || key === 'bgmEnabled' || key === 'showVirtualKeyboard') {
+    if (key === 'sfxEnabled' || key === 'bgmEnabled' || key === 'voiceEnabled' || key === 'showVirtualKeyboard') {
       return (el as HTMLInputElement).checked;
     }
     if (key === 'volume') return parseFloat(el.value);
