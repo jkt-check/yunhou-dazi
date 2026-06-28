@@ -46,9 +46,7 @@ class SpeechEngineImpl implements VoiceEngine {
   private enabled = true;
   /**
    * Per-kind rate limit window. Different characters (monkey vs mole) can
-   * speak in close succession — only same-kind lines are throttled. This lets
-   * the cheer "太棒啦!" and the scream "哎呦!" fire together on mole:hit without
-   * one cancelling the other via the global rate limiter.
+   * speak in close succession — only same-kind lines are throttled.
    */
   private lastSpeakAtByKind: Partial<Record<VoiceLineKind, number>> = {};
 
@@ -73,11 +71,11 @@ class SpeechEngineImpl implements VoiceEngine {
     const selectedVoice = pickVoice();
     if (selectedVoice) u.voice = selectedVoice;
 
-    // Do NOT call synth.cancel() here. With per-kind rate limit, different
-    // characters (monkey cheer + mole scream) fire back-to-back on mole:hit —
-    // calling cancel() would clip the first utterance mid-word. Let the
-    // engine queue utterances naturally; cancel() is reserved for explicit
-    // teardown (setEnabled(false), page navigation).
+    // Cancel before speak: Chrome SpeechSynthesis has a known quirk where
+    // repeated speak() without cancel() can hang or skip utterances (queue
+    // starvation). Cross-kind clipping is mitigated at the audioDirector
+    // layer — only one voice.speak() fires per event.
+    synth.cancel();
     synth.speak(u);
   }
 

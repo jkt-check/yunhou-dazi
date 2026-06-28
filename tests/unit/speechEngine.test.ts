@@ -81,13 +81,11 @@ describe('SpeechEngine', () => {
     expect(speakCalls[0].voice.lang).toBe('zh-CN');
   });
 
-  it('speak() DIFFERENT kinds do NOT cancel previous (regression: cross-kind clipping bug)', () => {
+  it('speak() cancels previous utterance before speaking (Chrome queue bug workaround)', () => {
     voice.speak('monkeyHit');
-    expect(cancelCalls).toBe(0);  // first speak — nothing to cancel
-    // Different kind: should NOT cancel the previous utterance (per-kind queue)
+    expect(cancelCalls).toBe(1);
     voice.speak('moleHit');
-    expect(cancelCalls).toBe(0);
-    expect(speakCalls).toHaveLength(2);
+    expect(cancelCalls).toBe(2);
   });
 
   it('speak() is suppressed when called within minIntervalMs (1000ms) of last call', () => {

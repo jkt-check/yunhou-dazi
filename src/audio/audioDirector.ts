@@ -26,9 +26,11 @@ export function createAudioDirector(
       audio.moleHit();           // mole's pain shriek (synthesized)
     }
     if (voiceOn()) {
-      // Per-kind rate limit lets both speak close together (different characters)
-      voice.speak('monkeyHit');  // monkey cheers the player
-      voice.speak('moleHit');    // mole screams in pain
+      // Only one TTS line per hit — speechEngine cancel-before-speak would
+      // clip back-to-back utterances. Mole scream is the more impactful cue
+      // (matches the visual shock), so prefer it. Monkey cheer fires
+      // periodically on combo upgrades instead.
+      voice.speak('moleHit');
     }
   }));
 
@@ -42,8 +44,11 @@ export function createAudioDirector(
     if (voiceOn()) voice.speak('moleTaunt');  // mole's spoken mockery
   }));
 
-  unsubs.push(bus.on('combo:tier-up', () => {
+  unsubs.push(bus.on('combo:tier-up', (e) => {
     if (sfxOn()) audio.tierUp();
+    // Monkey cheers player on tier-up (less frequent than per-hit, so it
+    // doesn't compete with mole screams for the TTS queue)
+    if (voiceOn() && e.tier >= 2) voice.speak('monkeyHit');
   }));
 
   unsubs.push(bus.on('combo:reset', () => {

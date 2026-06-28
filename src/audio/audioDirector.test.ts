@@ -181,13 +181,28 @@ describe('audioDirector', () => {
   });
 
   describe('voice routing', () => {
-    it('mole:hit triggers BOTH voice.speak("monkeyHit") AND voice.speak("moleHit") (regression: monkey restored)', () => {
+    it('mole:hit triggers voice.speak("moleHit") (regression: only one TTS per hit, avoids cancel-clipping)', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyHit');
       expect(voice.speak).toHaveBeenCalledWith('moleHit');
+      // monkeyHit now fires on tier-up, not per-hit
+      expect(voice.speak).not.toHaveBeenCalledWith('monkeyHit');
       expect(audioMock.moleHit).toHaveBeenCalled();
       expect(audioMock.hitForTier).toHaveBeenCalled();
+      d.stop();
+    });
+
+    it('combo:tier-up (tier >= 2) triggers monkeyHit cheer', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'combo:tier-up', tier: 2 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyHit');
+      d.stop();
+    });
+
+    it('combo:tier-up (tier 1) does NOT trigger monkeyHit cheer', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'combo:tier-up', tier: 1 });
+      expect(voice.speak).not.toHaveBeenCalled();
       d.stop();
     });
 
