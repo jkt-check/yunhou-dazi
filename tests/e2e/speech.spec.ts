@@ -1,126 +1,102 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E tests for Web Speech API integration.
+ * E2E for the FILE-BASED voice engine (replaces SpeechSynthesis).
+ * Verifies:
+ * - /voice/manifest.json is served by Vite
+ * - Each m4a file is reachable + valid audio
+ * - voice.speak() actually triggers an <audio> play event
  *
- * These run in REAL Chromium (not happy-dom) and verify the TTS path actually
- * works end-to-end. Unit tests with mocked window.speechSynthesis can verify
- * "I called speak()" but not "the browser actually played sound".
- *
- * What we CAN verify in headless:
- * - window.speechSynthesis is present in Chromium
- * - getVoices() returns at least one voice
- * - Calling voice.speak() with a real utterance fires `onstart` event
- * - utterance.text contains the expected line
- * - utterance.voice is set (pickVoice ran successfully)
- *
- * What we CANNOT verify in headless:
- * - That audio actually reached speakers (no microphone, no audio output
- *   in headless). But onstart firing is strong evidence the engine accepted
- *   the utterance and started synthesizing.
+ * Audio output itself can't be verified in headless (no speakers), but
+ * the play() promise + canplaythrough firing is strong evidence the
+ * browser is dispatching the audio data.
  */
 
-test.describe('SpeechEngine in real Chromium', () => {
-  test.beforeEach(async ({ page }) => {
-    // Capture console errors so we see SpeechSynthesis issues
-    const errors: string[] = [];
-    page.on('console', msg => {
-      if (msg.type() === 'error') errors.push(msg.text());
-    });
-    page.on('pageerror', err => errors.push(err.message));
+test.describe('FileSpeechEngine in real Chromium', () => {
+  test('manifest.json is served and parses', async ({ page }) => {
+    const res = await page.request.get('/voice/manifest.json');
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    expect(data.lines).toBeDefined();
+    const kinds = Object.keys(data.lines);
+    expect(kinds).toContain('monkeyHit');
+    expect(kinds).toContain('moleHit');
+    expect(kinds).toContain('moleTaunt');
   });
 
-  test('window.speechSynthesis is available in Chromium', async ({ page }) => {
-    await page.goto('/');
-    const hasSpeech = await page.evaluate(() => 'speechSynthesis' in window);
-    expect(hasSpeech).toBe(true);
+  test('audio files are reachable + valid audio/mp4', async ({ page }) => {
+    const manifest = await (await page.request.get('/voice/manifest.json')).json();
+    for (const kind of Object.keys(manifest.lines)) {
+      for (const line of manifest.lines[kind]) {
+        const r = await page.request.get(line.file);
+        expect(r.status(), `${line.file} should be reachable`).toBe(200);
+        expect(r.headers()['content-type']).toMatch(/audio/);
+      }
+    }
   });
 
-  test('getVoices() returns at least one voice', async ({ page }) => {
+  test('voice.speak() actually plays audio in real browser', async ({ page }) => {
     await page.goto('/');
-    // Voices load async — wait for voiceschanged event
-    const voiceCount = await page.evaluate(async () => {
-      const synth = (window as any).speechSynthesis;
-      if (synth.getVoices().length > 0) return synth.getVoices().length;
-      // Wait for voiceschanged
-      return new Promise<number>(resolve => {
-        synth.addEventListener('voiceschanged', () => {
-          resolve(synth.getVoices().length);
-        }, { once: true });
-        // Timeout fallback
-        setTimeout(() => resolve(synth.getVoices().length), 2000);
-      });
-    });
-    expect(voiceCount).toBeGreaterThan(0);
-  });
+    // Wait for manifest + audio to load
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
 
-  test('voice.speak() actually triggers utterance onstart (real browser)', async ({ page }) => {
-    await page.goto('/');
-    // Hook into SpeechSynthesisUtterance before voice module loads
-    await page.addInitScript(() => {
-      const w = window as any;
-      w.__startedUtterances = [];
-      const OrigUtterance = (window as any).SpeechSynthesisUtterance;
-      // Wrap to capture onstart fires
-      (window as any).SpeechSynthesisUtterance = function(text: string) {
-        const u = new OrigUtterance(text);
-        u.addEventListener('start', () => {
-          w.__startedUtterances.push({ text: u.text, voice: u.voice?.name, lang: u.lang });
-        });
-        u.addEventListener('error', (e: any) => {
-          w.__startedUtterances.push({ text: u.text, error: e.error });
-        });
-        return u;
-      };
-    });
-    // Re-navigate so init script runs
-    await page.goto('/');
-    // Wait for voices to load
-    await page.waitForFunction(() => (window as any).speechSynthesis?.getVoices().length > 0, { timeout: 5000 }).catch(() => {});
-    // Import voice module and call speak
-    const result = await page.evaluate(async () => {
+    const playCount = await page.evaluate(async () => {
       const { voice } = await import('/src/audio/speechEngine.ts');
       voice.setEnabled(true);
-      voice.speak('moleHit');
-      // Give it 500ms to start
-      await new Promise(r => setTimeout(r, 500));
-      return (window as any).__startedUtterances;
-    });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0].text.length).toBeGreaterThan(0);
-    // Should not have errored
-    expect(result[0].error).toBeUndefined();
-  });
-
-  test('voice.speak() rate-limited within 1s for same kind', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForFunction(() => (window as any).speechSynthesis?.getVoices().length > 0, { timeout: 5000 }).catch(() => {});
-    const result = await page.evaluate(async () => {
-      const w = window as any;
-      w.__startedUtterances = [];
-      const OrigUtterance = window.SpeechSynthesisUtterance;
-      window.SpeechSynthesisUtterance = function(text: string) {
-        const u = new OrigUtterance(text);
-        u.addEventListener('start', () => w.__startedUtterances.push(text));
-        return u;
+      // Reset rate limit
+      (voice as any).lastSpeakAtByKind = {};
+      // Wrap Audio.prototype.play to count actual play() calls
+      let count = 0;
+      const origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        count++;
+        return origPlay.call(this);
       };
-      const { voice } = await import('/src/audio/speechEngine.ts');
-      voice.setEnabled(true);
       voice.speak('moleHit');
-      voice.speak('moleHit');  // rate-limited
-      voice.speak('moleHit');  // rate-limited
+      // Wait for async play() to resolve
       await new Promise(r => setTimeout(r, 300));
-      return w.__startedUtterances.length;
+      HTMLMediaElement.prototype.play = origPlay;
+      return count;
     });
-    expect(result).toBe(1);  // only first speak() made it through
+    expect(playCount).toBeGreaterThanOrEqual(1);
   });
 
-  test('audio context for SFX can be created (regression: no BGM bug)', async ({ page }) => {
+  test('voice rate-limited within 800ms for same kind', async ({ page }) => {
     await page.goto('/');
-    const hasAudioContext = await page.evaluate(() => {
-      return typeof (window as any).AudioContext !== 'undefined'
-          || typeof (window as any).webkitAudioContext !== 'undefined';
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
+
+    const playCount = await page.evaluate(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      voice.setEnabled(true);
+      (voice as any).lastSpeakAtByKind = {};
+      let count = 0;
+      const origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        count++;
+        return origPlay.call(this);
+      };
+      voice.speak('moleHit');
+      voice.speak('moleHit');
+      voice.speak('moleHit');
+      await new Promise(r => setTimeout(r, 300));
+      HTMLMediaElement.prototype.play = origPlay;
+      return count;
     });
-    expect(hasAudioContext).toBe(true);
+    expect(playCount).toBe(1);
+  });
+
+  test('all 6 kinds have audio files', async ({ page }) => {
+    const manifest = await (await page.request.get('/voice/manifest.json')).json();
+    const expected = ['monkeyHit', 'monkeyMiss', 'monkeyWin', 'monkeyLose', 'moleHit', 'moleTaunt'];
+    for (const k of expected) {
+      expect(manifest.lines[k]).toBeDefined();
+      expect(manifest.lines[k].length).toBeGreaterThan(0);
+    }
   });
 });

@@ -1,0 +1,137 @@
+{
+  "generated": "2026-06-28T13:25:07.895Z",
+  "lines": {
+    "monkeyHit": [
+      {
+        "file": "/voice/monkeyHit/0.m4a",
+        "text": "太棒啦!"
+      },
+      {
+        "file": "/voice/monkeyHit/1.m4a",
+        "text": "打中啦!"
+      },
+      {
+        "file": "/voice/monkeyHit/2.m4a",
+        "text": "真准!"
+      },
+      {
+        "file": "/voice/monkeyHit/3.m4a",
+        "text": "好厉害!"
+      },
+      {
+        "file": "/voice/monkeyHit/4.m4a",
+        "text": "再来一个!"
+      }
+    ],
+    "monkeyMiss": [
+      {
+        "file": "/voice/monkeyMiss/0.m4a",
+        "text": "再来一次!"
+      },
+      {
+        "file": "/voice/monkeyMiss/1.m4a",
+        "text": "别灰心!"
+      },
+      {
+        "file": "/voice/monkeyMiss/2.m4a",
+        "text": "加油加油!"
+      },
+      {
+        "file": "/voice/monkeyMiss/3.m4a",
+        "text": "差一点!"
+      },
+      {
+        "file": "/voice/monkeyMiss/4.m4a",
+        "text": "下次一定行!"
+      }
+    ],
+    "monkeyWin": [
+      {
+        "file": "/voice/monkeyWin/0.m4a",
+        "text": "通关啦!"
+      },
+      {
+        "file": "/voice/monkeyWin/1.m4a",
+        "text": "太厉害啦!"
+      },
+      {
+        "file": "/voice/monkeyWin/2.m4a",
+        "text": "满分!"
+      },
+      {
+        "file": "/voice/monkeyWin/3.m4a",
+        "text": "你是打字小高手!"
+      },
+      {
+        "file": "/voice/monkeyWin/4.m4a",
+        "text": "完美收官!"
+      }
+    ],
+    "monkeyLose": [
+      {
+        "file": "/voice/monkeyLose/0.m4a",
+        "text": "再来一局!"
+      },
+      {
+        "file": "/voice/monkeyLose/1.m4a",
+        "text": "加油!"
+      },
+      {
+        "file": "/voice/monkeyLose/2.m4a",
+        "text": "下次一定行!"
+      },
+      {
+        "file": "/voice/monkeyLose/3.m4a",
+        "text": "别灰心哦~"
+      },
+      {
+        "file": "/voice/monkeyLose/4.m4a",
+        "text": "再来一次!"
+      }
+    ],
+    "moleHit": [
+      {
+        "file": "/voice/moleHit/0.m4a",
+        "text": "哎呦呦!"
+      },
+      {
+        "file": "/voice/moleHit/1.m4a",
+        "text": "疼啊~~~~"
+      },
+      {
+        "file": "/voice/moleHit/2.m4a",
+        "text": "啊啊啊啊!"
+      },
+      {
+        "file": "/voice/moleHit/3.m4a",
+        "text": "哎哟喂~!"
+      },
+      {
+        "file": "/voice/moleHit/4.m4a",
+        "text": "救命啊!"
+      }
+    ],
+    "moleTaunt": [
+      {
+        "file": "/voice/moleTaunt/0.m4a",
+        "text": "打不到我!"
+      },
+      {
+        "file": "/voice/moleTaunt/1.m4a",
+        "text": "哈哈!"
+      },
+      {
+        "file": "/voice/moleTaunt/2.m4a",
+        "text": "来呀!"
+      },
+      {
+        "file": "/voice/moleTaunt/3.m4a",
+        "text": "你按错啦!"
+      },
+      {
+        "file": "/voice/moleTaunt/4.m4a",
+        "text": "略略略~"
+      }
+    ]
+  }
+}

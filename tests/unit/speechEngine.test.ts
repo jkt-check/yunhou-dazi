@@ -1,131 +1,145 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { type VoiceLineKind } from '@/audio/speechEngine';
-
-class MockSpeechSynthesisUtterance {
-  lang = '';
-  rate = 1;
-  pitch = 1;
-  volume = 1;
-  voice = null;
-  text = '';
-  constructor(text: string) { this.text = text; }
-}
-globalThis.SpeechSynthesisUtterance = MockSpeechSynthesisUtterance as any;
-
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { voice } from '@/audio/speechEngine';
+import type { VoiceLineKind } from '@/audio/speechEngine';
 
-interface MockUtterance {
-  lang: string;
-  rate: number;
-  pitch: number;
-  volume: number;
-  voice: any;
-  text: string;
+class MockAudio {
+  src = '';
+  preload = '';
+  volume = 1;
+  paused = true;
+  currentTime = 0;
+  private _listeners: Record<string, Array<() => void>> = {};
+
+  constructor(src?: string) {
+    this.src = src ?? '';
+    MockAudio.created.push(this);
+  }
+
+  load() { /* no-op */ }
+  cloneNode() { return new MockAudio(this.src); }
+  async play() { this.paused = false; MockAudio.played.push(this); }
+  pause() { this.paused = true; }
+  addEventListener(event: string, cb: () => void) {
+    (this._listeners[event] ||= []).push(cb);
+  }
+  removeEventListener() {}
+  _emit(event: string) {
+    (this._listeners[event] ?? []).forEach(cb => cb());
+  }
 }
+(MockAudio as any).created = [] as MockAudio[];
+(MockAudio as any).played = [] as MockAudio[];
 
-describe('SpeechEngine', () => {
-  let speakCalls: MockUtterance[];
-  let cancelCalls: number;
-  let voices: any[];
+// Mock Audio constructor globally
+const OriginalAudio = (globalThis as any).Audio;
+beforeEach(() => {
+  MockAudio.created.length = 0;
+  MockAudio.played.length = 0;
+  (globalThis as any).Audio = MockAudio;
+});
+afterEach(() => {
+  (globalThis as any).Audio = OriginalAudio;
+});
 
-  beforeEach(() => {
-    speakCalls = [];
-    cancelCalls = 0;
-    voices = [
-      { lang: 'en-US', name: 'en-US-1' },
-      { lang: 'zh-CN', name: 'zh-CN-Google' },
-      { lang: 'zh-CN', name: 'zh-CN-Xunfei' }
-    ];
+// Mock fetch to return a fake manifest
+const fakeManifest = {
+  lines: {
+    monkeyHit: [{ file: '/voice/monkeyHit/0.m4a', text: '太棒啦!' }],
+    monkeyMiss: [{ file: '/voice/monkeyMiss/0.m4a', text: '再来一次!' }],
+    monkeyWin: [{ file: '/voice/monkeyWin/0.m4a', text: '通关啦!' }],
+    monkeyLose: [{ file: '/voice/monkeyLose/0.m4a', text: '再来一局!' }],
+    moleHit: [{ file: '/voice/moleHit/0.m4a', text: '哎呦呦!' }],
+    moleTaunt: [{ file: '/voice/moleTaunt/0.m4a', text: '打不到我!' }]
+  }
+};
 
-    (window as any).speechSynthesis = {
-      getVoices: () => voices,
-      speak: (u: any) => speakCalls.push({ ...u }),
-      cancel: () => { cancelCalls++; }
-    };
+const originalFetch = globalThis.fetch;
+beforeEach(() => {
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => fakeManifest
+  }) as any;
+});
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
-    voice.setEnabled(true);
-    // Reset per-kind rate limit so each test's first speak() goes through
+describe('FileSpeechEngine', () => {
+  beforeEach(async () => {
+    // Reset module-level singleton state for each test
+    (voice as any).enabled = true;
+    (voice as any).manifest = null;
+    (voice as any).pool = {};
+    (voice as any).current = {};
     (voice as any).lastSpeakAtByKind = {};
+    (voice as any).loadPromise = null;
+    // Wait for the eager load() from module init to resolve
+    await voice.load();
   });
 
-  afterEach(() => {
-    delete (window as any).speechSynthesis;
-  });
-
-  it('speak() is no-op when SpeechSynthesis API is unavailable', () => {
-    delete (window as any).speechSynthesis;
-    expect(() => voice.speak('monkeyHit')).not.toThrow();
-  });
-
-  it('speak() creates an utterance with text from the matching pool', () => {
-    voice.speak('monkeyHit');
-    expect(speakCalls).toHaveLength(1);
-    expect(speakCalls[0].text.length).toBeGreaterThan(0);
-  });
-
-  it('speak() applies per-kind TTS profile (zh-CN lang + non-default rate/pitch/volume)', () => {
-    voice.speak('monkeyHit');
-    const u = speakCalls[0];
-    expect(u.lang).toBe('zh-CN');
-    // Profile values must be present and within sane ranges (TTS engines clamp 0.1-10 / 0-2)
-    expect(u.rate).toBeGreaterThanOrEqual(0.1);
-    expect(u.rate).toBeLessThanOrEqual(10);
-    expect(u.pitch).toBeGreaterThanOrEqual(0);
-    expect(u.pitch).toBeLessThanOrEqual(2);
-    expect(u.volume).toBeGreaterThanOrEqual(0);
-    expect(u.volume).toBeLessThanOrEqual(1);
-  });
-
-  it('speak() picks a zh-CN voice from getVoices()', () => {
-    voice.speak('monkeyHit');
-    expect(speakCalls[0].voice.lang).toBe('zh-CN');
-  });
-
-  it('speak() cancels previous utterance before speaking (Chrome queue bug workaround)', () => {
-    voice.speak('monkeyHit');
-    expect(cancelCalls).toBe(1);
-    voice.speak('moleHit');
-    expect(cancelCalls).toBe(2);
-  });
-
-  it('speak() is suppressed when called within minIntervalMs (1000ms) of last call', () => {
-    voice.speak('monkeyHit');
-    expect(speakCalls).toHaveLength(1);
-    voice.speak('monkeyHit');
-    expect(speakCalls).toHaveLength(1);
-  });
-
-  it('speak() DIFFERENT kinds within 1000ms are both spoken (regression: per-kind rate limit)', () => {
-    voice.speak('monkeyHit');
-    expect(speakCalls).toHaveLength(1);
-    voice.speak('moleHit');
-    // Both should fire — different characters, independent rate windows
-    expect(speakCalls).toHaveLength(2);
-  });
-
-  it('setEnabled(false) cancels current utterance and blocks future speaks', () => {
-    voice.setEnabled(false);
-    voice.speak('monkeyHit');
-    expect(speakCalls).toHaveLength(0);
-    expect(cancelCalls).toBeGreaterThanOrEqual(1);
-  });
-
-  it('isSupported() returns false when SpeechSynthesis is unavailable', () => {
-    delete (window as any).speechSynthesis;
-    expect(voice.isSupported()).toBe(false);
-  });
-
-  it('isSupported() returns true when SpeechSynthesis is available', () => {
+  it('isSupported() returns true when Audio is available', () => {
     expect(voice.isSupported()).toBe(true);
   });
 
-  it('speak() each kind returns a non-empty utterance', () => {
-    (['monkeyHit', 'monkeyMiss', 'monkeyWin', 'monkeyLose', 'moleHit', 'moleTaunt'] as VoiceLineKind[]).forEach((kind) => {
-      speakCalls.length = 0;
-      (voice as any).lastSpeakAtByKind = {};  // bypass rate limit for loop iteration
-      voice.speak(kind);
-      expect(speakCalls).toHaveLength(1);
-      expect(speakCalls[0].text.length).toBeGreaterThan(0);
-    });
+  it('load() preloads audio elements for all kinds', async () => {
+    expect((voice as any).manifest).not.toBeNull();
+    expect((voice as any).pool.monkeyHit).toHaveLength(1);
+    expect((voice as any).pool.moleHit).toHaveLength(1);
+    // Audio constructor was called once per manifest entry
+    expect(MockAudio.created.length).toBe(6);
+  });
+
+  it('speak() plays audio for the matching kind', async () => {
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    expect(MockAudio.played.length).toBe(1);
+    expect(MockAudio.played[0].src).toContain('monkeyHit');
+  });
+
+  it('speak() is rate-limited within minIntervalMs (800ms) for same kind', async () => {
+    voice.speak('monkeyHit');
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    expect(MockAudio.played.length).toBe(1);
+  });
+
+  it('speak() DIFFERENT kinds are not rate-limited', async () => {
+    voice.speak('monkeyHit');
+    voice.speak('moleHit');
+    await new Promise(r => setTimeout(r, 0));
+    expect(MockAudio.played.length).toBe(2);
+  });
+
+  it('setEnabled(false) cancels in-flight playbacks and blocks future speaks', async () => {
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    expect(MockAudio.played.length).toBe(1);
+    voice.setEnabled(false);
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    expect(MockAudio.played.length).toBe(1);  // no new play
+  });
+
+  it('speak() is no-op when manifest not loaded yet', async () => {
+    (voice as any).loadPromise = null;
+    (voice as any).manifest = null;
+    (voice as any).pool = {};
+    voice.speak('monkeyHit');
+    expect(MockAudio.played.length).toBe(0);
+  });
+
+  it('cancel() pauses currently-playing audio', async () => {
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    const played = MockAudio.played[0];
+    voice.cancel();
+    expect(played.paused).toBe(true);
+  });
+
+  it('each kind has a non-empty pool after load', () => {
+    const kinds: VoiceLineKind[] = ['monkeyHit', 'monkeyMiss', 'monkeyWin', 'monkeyLose', 'moleHit', 'moleTaunt'];
+    for (const k of kinds) {
+      expect((voice as any).pool[k].length).toBeGreaterThan(0);
+    }
   });
 });

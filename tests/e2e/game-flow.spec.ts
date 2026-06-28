@@ -1,137 +1,125 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Full game flow E2E test — loads the game page in real Chromium and verifies
- * that the TTS pipeline works end-to-end through the event bus, audioDirector,
- * and speechEngine.
- *
- * This catches what unit tests can't:
- * - Event bus wiring through real DOM
- * - audioDirector routes fires correctly under real conditions
- * - speechEngine.speak() actually reaches the SpeechSynthesis engine
+ * Full game flow E2E — verifies voice file pipeline triggers when game
+ * events fire. Uses file-based voice engine (replaces SpeechSynthesis).
  */
 
-test.describe('Game page TTS pipeline (real browser)', () => {
-  test.beforeEach(async ({ page }) => {
-    // Capture all utterances started + errors for assertions
-    await page.addInitScript(() => {
-      const w = window as any;
-      w.__utterances = [];
-      const OrigUtterance = window.SpeechSynthesisUtterance;
-      window.SpeechSynthesisUtterance = function(text: string) {
-        const u = new OrigUtterance(text);
-        u.addEventListener('start', () => {
-          w.__utterances.push({ text: u.text, voice: u.voice?.name });
-        });
-        u.addEventListener('error', (e: any) => {
-          w.__utterances.push({ text: u.text, error: e.error });
-        });
-        return u;
+test.describe('Game page voice pipeline (file-based)', () => {
+  test('game page loads + voice manifest loaded', async ({ page }) => {
+    await page.goto('/#/game?level=1');
+    await page.waitForSelector('canvas.game-canvas');
+    // Wait for voice manifest to be loaded into the engine
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
+  });
+
+  test('mole:hit triggers moleHit audio play (regression: dual-voice fix)', async ({ page }) => {
+    await page.goto('/#/game?level=1');
+    await page.waitForSelector('canvas.game-canvas');
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
+
+    const plays = await page.evaluate(async () => {
+      let count = 0;
+      const origPlay = HTMLMediaElement.prototype.play;
+      const played: Array<{ src: string; time: number }> = [];
+      HTMLMediaElement.prototype.play = function () {
+        count++;
+        played.push({ src: this.src, time: Date.now() });
+        return origPlay.call(this);
       };
-    });
-  });
-
-  test('game page loads + speechSynthesis ready', async ({ page }) => {
-    await page.goto('/#/game?level=1');
-    // Wait for canvas to render (game initialized)
-    await page.waitForSelector('canvas.game-canvas', { timeout: 5000 });
-    // Wait for voices to load
-    await page.waitForFunction(() =>
-      (window as any).speechSynthesis?.getVoices().length > 0,
-      { timeout: 5000 }
-    ).catch(() => {});
-  });
-
-  test('firing mole:hit triggers moleHit utterance (regression: dual-voice fix)', async ({ page }) => {
-    await page.goto('/#/game?level=1');
-    await page.waitForSelector('canvas.game-canvas');
-    await page.waitForFunction(() =>
-      (window as any).speechSynthesis?.getVoices().length > 0,
-      { timeout: 5000 }
-    ).catch(() => {});
-
-    // Trigger mole:hit by injecting event into bus
-    const utterances = await page.evaluate(async () => {
-      const w = window as any;
-      w.__utterances.length = 0;
-      // Import bus + voice directly
       const { createEventBus } = await import('/src/core/eventBus.ts');
       const { voice } = await import('/src/audio/speechEngine.ts');
-      voice.setEnabled(true);
-      // The game's actual bus is internal. Use a fresh bus and dispatch through voice path manually:
       const { createAudioDirector } = await import('/src/audio/audioDirector.ts');
+      const { settingsStore } = await import('/src/store/slices/settings.ts');
+      voice.setEnabled(true);
+      (voice as any).lastSpeakAtByKind = {};
       const bus = createEventBus();
-      createAudioDirector(bus, {
-        get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: true })
-      });
+      createAudioDirector(bus, settingsStore);
       bus.emit({ type: 'mole:hit', mole: { id: 'm1' } as any, responseMs: 100, tier: 1 });
-      await new Promise((r) => setTimeout(r, 600));
-      return w.__utterances;
+      await new Promise(r => setTimeout(r, 400));
+      HTMLMediaElement.prototype.play = origPlay;
+      return { count, played };
     });
 
-    expect(utterances.length).toBeGreaterThan(0);
-    // Should be a moleHit voice line (short pain exclamation)
-    // Pool: 哎呦呦! / 疼啊~~~~ / 啊啊啊啊! / 哎哟喂~! / 救命啊!
-    const text = utterances[0].text;
-    expect(text).toMatch(/哎|疼|啊|救/);
-    // Should NOT be a monkey cheer (regression: dual-voice bug)
-    expect(text).not.toMatch(/太棒|真准|好厉|再来一个/);
+    expect(plays.count).toBeGreaterThanOrEqual(1);
+    const moleHitPlays = plays.played.filter(p => p.src.includes('moleHit'));
+    expect(moleHitPlays.length).toBeGreaterThanOrEqual(1);
+    // Should NOT have monkeyHit audio
+    const monkeyHitPlays = plays.played.filter(p => p.src.includes('monkeyHit'));
+    expect(monkeyHitPlays.length).toBe(0);
   });
 
-  test('mole:taunt triggers moleTaunt utterance', async ({ page }) => {
+  test('mole:taunt triggers moleTaunt audio', async ({ page }) => {
     await page.goto('/#/game?level=1');
     await page.waitForSelector('canvas.game-canvas');
-    await page.waitForFunction(() =>
-      (window as any).speechSynthesis?.getVoices().length > 0,
-      { timeout: 5000 }
-    ).catch(() => {});
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
 
-    const utterances = await page.evaluate(async () => {
-      const w = window as any;
-      w.__utterances.length = 0;
+    const plays = await page.evaluate(async () => {
+      let count = 0;
+      const played: string[] = [];
+      const origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        count++;
+        played.push(this.src);
+        return origPlay.call(this);
+      };
       const { createEventBus } = await import('/src/core/eventBus.ts');
       const { voice } = await import('/src/audio/speechEngine.ts');
-      voice.setEnabled(true);
       const { createAudioDirector } = await import('/src/audio/audioDirector.ts');
+      const { settingsStore } = await import('/src/store/slices/settings.ts');
+      voice.setEnabled(true);
+      (voice as any).lastSpeakAtByKind = {};
       const bus = createEventBus();
-      createAudioDirector(bus, {
-        get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: true })
-      });
+      createAudioDirector(bus, settingsStore);
       bus.emit({ type: 'mole:taunt', mole: { id: 'm1' } as any, text: 'x' });
-      await new Promise((r) => setTimeout(r, 600));
-      return w.__utterances;
+      await new Promise(r => setTimeout(r, 400));
+      HTMLMediaElement.prototype.play = origPlay;
+      return { count, played };
     });
 
-    expect(utterances.length).toBeGreaterThan(0);
-    const text = utterances[0].text;
-    // moleTaunt pool: 打不到我/哈哈/来呀/你按错啦/略略略~
-    expect(text).toMatch(/打不到|哈|来呀|按错|略/);
+    expect(plays.count).toBeGreaterThanOrEqual(1);
+    const tauntPlays = plays.played.filter(s => s.includes('moleTaunt'));
+    expect(tauntPlays.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('voiceEnabled=false suppresses all utterances', async ({ page }) => {
+  test('voiceEnabled=false suppresses all voice plays', async ({ page }) => {
     await page.goto('/#/game?level=1');
     await page.waitForSelector('canvas.game-canvas');
-    await page.waitForFunction(() =>
-      (window as any).speechSynthesis?.getVoices().length > 0,
-      { timeout: 5000 }
-    ).catch(() => {});
+    await page.waitForFunction(async () => {
+      const { voice } = await import('/src/audio/speechEngine.ts');
+      return (voice as any).manifest !== null;
+    }, { timeout: 10000 });
 
-    const utterances = await page.evaluate(async () => {
-      const w = window as any;
-      w.__utterances.length = 0;
+    const plays = await page.evaluate(async () => {
+      let count = 0;
+      const origPlay = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        count++;
+        return origPlay.call(this);
+      };
       const { createEventBus } = await import('/src/core/eventBus.ts');
       const { createAudioDirector } = await import('/src/audio/audioDirector.ts');
+      const { settingsStore } = await import('/src/store/slices/settings.ts');
+      settingsStore.set({ voiceEnabled: false });
       const bus = createEventBus();
-      createAudioDirector(bus, {
-        get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: false })
-      });
+      createAudioDirector(bus, settingsStore);
       bus.emit({ type: 'mole:hit', mole: { id: 'm1' } as any, responseMs: 100, tier: 1 });
       bus.emit({ type: 'mole:taunt', mole: { id: 'm2' } as any, text: 'x' });
       bus.emit({ type: 'level:complete', stats: {} as any });
-      await new Promise((r) => setTimeout(r, 600));
-      return w.__utterances;
+      await new Promise(r => setTimeout(r, 400));
+      HTMLMediaElement.prototype.play = origPlay;
+      return count;
     });
 
-    expect(utterances).toHaveLength(0);
+    expect(plays).toBe(0);
   });
 });
