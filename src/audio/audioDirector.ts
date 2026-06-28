@@ -25,7 +25,11 @@ export function createAudioDirector(
       audio.hitForTier(e.tier);  // player's whack
       audio.moleHit();           // mole's pain shriek (synthesized)
     }
-    if (voiceOn()) voice.speak('moleHit');  // mole screams; monkey cheer suppressed to avoid TTS overlap
+    if (voiceOn()) {
+      // Per-kind rate limit lets both speak close together (different characters)
+      voice.speak('monkeyHit');  // monkey cheers the player
+      voice.speak('moleHit');    // mole screams in pain
+    }
   }));
 
   unsubs.push(bus.on('mole:miss', () => {

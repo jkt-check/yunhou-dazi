@@ -181,9 +181,10 @@ describe('audioDirector', () => {
   });
 
   describe('voice routing', () => {
-    it('mole:hit triggers voice.speak("moleHit") + audio.moleHit + audio.hitForTier when both flags on', () => {
+    it('mole:hit triggers BOTH voice.speak("monkeyHit") AND voice.speak("moleHit") (regression: monkey restored)', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyHit');
       expect(voice.speak).toHaveBeenCalledWith('moleHit');
       expect(audioMock.moleHit).toHaveBeenCalled();
       expect(audioMock.hitForTier).toHaveBeenCalled();

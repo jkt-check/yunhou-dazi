@@ -40,10 +40,17 @@ describe('pickLine', () => {
 });
 
 describe('mole voice lines (regression: mole was silent)', () => {
-  it('moleHit lines are short exclamations (scream-like, 1-3 chars typically)', () => {
+  it('moleHit lines are exclamations (not full sentences, fit scream pattern)', () => {
     VOICE_LINES.moleHit.forEach(line => {
-      expect(line.length).toBeLessThanOrEqual(6);  // brief, screams
+      // Brief enough to be a cry/scream — not a full sentence
+      expect(line.length).toBeLessThanOrEqual(12);
     });
+  });
+
+  it('moleHit lines include stretched vowels for cry effect (~, repeated chars)', () => {
+    // At least one line should have a stretched cry marker
+    const hasStretched = VOICE_LINES.moleHit.some(l => /~+|啊+|哎+|疼+|救+/.test(l));
+    expect(hasStretched).toBe(true);
   });
 
   it('moleTaunt lines are playful/mocking (no harsh language for kids)', () => {

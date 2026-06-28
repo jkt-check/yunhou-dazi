@@ -44,8 +44,8 @@ describe('SpeechEngine', () => {
     };
 
     voice.setEnabled(true);
-    // Reset rate limit state so each test's first speak() goes through
-    (voice as any).lastSpeakAt = 0;
+    // Reset per-kind rate limit so each test's first speak() goes through
+    (voice as any).lastSpeakAtByKind = {};
   });
 
   afterEach(() => {
@@ -84,7 +84,7 @@ describe('SpeechEngine', () => {
   it('speak() cancels previous utterance before speaking (avoid overlap)', () => {
     voice.speak('monkeyHit');
     expect(cancelCalls).toBe(1);  // every speak() cancels first (even when nothing to cancel)
-    (voice as any).lastSpeakAt = 0;  // bypass rate limit so 2nd speak reaches cancel()
+    // Bypass rate limit so 2nd speak reaches cancel() — different kind so no rate limit anyway
     voice.speak('monkeyMiss');
     expect(cancelCalls).toBe(2);
   });
@@ -94,6 +94,14 @@ describe('SpeechEngine', () => {
     expect(speakCalls).toHaveLength(1);
     voice.speak('monkeyHit');
     expect(speakCalls).toHaveLength(1);
+  });
+
+  it('speak() DIFFERENT kinds within 1000ms are both spoken (regression: per-kind rate limit)', () => {
+    voice.speak('monkeyHit');
+    expect(speakCalls).toHaveLength(1);
+    voice.speak('moleHit');
+    // Both should fire — different characters, independent rate windows
+    expect(speakCalls).toHaveLength(2);
   });
 
   it('setEnabled(false) cancels current utterance and blocks future speaks', () => {
@@ -115,7 +123,7 @@ describe('SpeechEngine', () => {
   it('speak() each kind returns a non-empty utterance', () => {
     (['monkeyHit', 'monkeyMiss', 'monkeyWin', 'monkeyLose', 'moleHit', 'moleTaunt'] as VoiceLineKind[]).forEach((kind) => {
       speakCalls.length = 0;
-      (voice as any).lastSpeakAt = 0;  // bypass rate limit for loop iteration
+      (voice as any).lastSpeakAtByKind = {};  // bypass rate limit for loop iteration
       voice.speak(kind);
       expect(speakCalls).toHaveLength(1);
       expect(speakCalls[0].text.length).toBeGreaterThan(0);

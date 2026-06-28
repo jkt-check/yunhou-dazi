@@ -4,6 +4,13 @@ import { pickLine, type VoiceLineKind } from '@/speech/voiceLines';
  * Per-kind prosody profiles. Different characters + situations get different
  * pitch/rate/volume so voices don't sound monotone. Higher pitch = cartoon-like
  * / excited; faster rate = urgent / energetic.
+ *
+ * Known limitation: Web Speech API quality is bound to installed OS voices.
+ * SSML prosody is NOT supported in browsers (WebAudio/web-speech-api#37),
+ * so per-line prosody tags aren't an option. Voice selection + prosody params
+ * are our only levers. The biggest quality win comes from picking
+ * Microsoft Natural Online voices when available (Xiaoxiao, Yunyang) — see
+ * pickVoice() below.
  */
 interface TtsProfile {
   rate: number;
@@ -12,7 +19,7 @@ interface TtsProfile {
 }
 
 const TTS_PROFILES: Record<VoiceLineKind, TtsProfile> = {
-  // Monkey: cheerful, slightly high, bouncy
+  // Monkey: cheerful, high, bouncy
   monkeyHit:  { rate: 1.15, pitch: 1.4, volume: 0.95 },
   monkeyMiss: { rate: 0.95, pitch: 1.2, volume: 0.85 },
   monkeyWin:  { rate: 1.05, pitch: 1.5, volume: 1.00 },
@@ -37,18 +44,23 @@ export interface VoiceEngine {
 
 class SpeechEngineImpl implements VoiceEngine {
   private enabled = true;
-  private lastSpeakAt = 0;
+  /**
+   * Per-kind rate limit window. Different characters (monkey vs mole) can
+   * speak in close succession — only same-kind lines are throttled. This lets
+   * the cheer "太棒啦!" and the scream "哎呦!" fire together on mole:hit without
+   * one cancelling the other via the global rate limiter.
+   */
+  private lastSpeakAtByKind: Partial<Record<VoiceLineKind, number>> = {};
 
   speak(kind: VoiceLineKind): void {
     if (!this.enabled) return;
     if (!this.isSupported()) return;
 
     const now = performance.now();
-    // Skip rate limit when lastSpeakAt is 0 (uninitialized) — otherwise tests run
-    // within the first 1000ms of page load would be falsely rate-limited since
-    // performance.now() can be < 1000 at that point.
-    if (this.lastSpeakAt > 0 && now - this.lastSpeakAt < MIN_INTERVAL_MS) return;
-    this.lastSpeakAt = now;
+    const last = this.lastSpeakAtByKind[kind] ?? 0;
+    // Skip rate limit on first speak of this kind (last === 0 means uninitialized)
+    if (last > 0 && now - last < MIN_INTERVAL_MS) return;
+    this.lastSpeakAtByKind[kind] = now;
 
     const line = pickLine(kind);
     const synth = window.speechSynthesis;
@@ -58,8 +70,8 @@ class SpeechEngineImpl implements VoiceEngine {
     u.rate = profile.rate;
     u.pitch = profile.pitch;
     u.volume = profile.volume;
-    const zhVoice = pickVoice();
-    if (zhVoice) u.voice = zhVoice;
+    const selectedVoice = pickVoice();
+    if (selectedVoice) u.voice = selectedVoice;
 
     synth.cancel();
     synth.speak(u);
@@ -82,28 +94,56 @@ class SpeechEngineImpl implements VoiceEngine {
 }
 
 /**
- * Voice selection: prefer high-quality named voices (Microsoft Yaoyao, Google
- * 普通话) before falling back to any zh-CN voice. Named voices generally
- * sound more natural than the OS default.
+ * Voice selection — biggest quality lever we have.
+ *
+ * Priority (highest quality first):
+ *  1. Microsoft Natural Online voices (Xiaoxiao, Yunyang, Yunjian, etc.)
+ *     — these are Neural TTS via Microsoft's cloud, exposed in Edge/Chrome.
+ *  2. Other Microsoft branded voices (Yaoyao, Huihui, Tracy, Hanhan).
+ *  3. Google branded zh-CN voices (Google 普通话).
+ *  4. Female-coded names.
+ *  5. First available zh-CN voice.
+ *  6. null (engine falls back to OS default).
  */
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
+
   const zhVoices = voices.filter((v) => v.lang === 'zh-CN');
   if (zhVoices.length === 0) return null;
 
-  // Prefer Microsoft / Google branded voices (usually more natural)
-  const preferred = zhVoices.find((v) =>
-    /microsoft|google|yating|tingting|yaoyao|kangkang|hanhan/i.test(v.name)
+  // Tier 1: Microsoft Natural Online (Neural) — names like "Microsoft Xiaoxiao Online (Natural)"
+  const natural = zhVoices.find((v) =>
+    /microsoft.*online.*natural|microsoft\s*natural/i.test(v.name)
   );
-  if (preferred) return preferred;
+  if (natural) return natural;
 
-  // Prefer female-coded voice names if no branded match
+  // Tier 1b: Specific named Natural voices (Xiaoxiao, Yunyang, Yunjian, Yunxi, Xiaoyi, Xiaomeng, Xiaohan)
+  const naturalName = zhVoices.find((v) =>
+    /xiaoxiao|yunyang|yunjian|yunxi|xiaoyi|xiaomeng|xiaohan/i.test(v.name)
+  );
+  if (naturalName) return naturalName;
+
+  // Tier 2: Microsoft branded non-Online (Yaoyao, Huihui, Hanhan, Kangkang, Tracy)
+  const microsoft = zhVoices.find((v) =>
+    /microsoft/i.test(v.name)
+  );
+  if (microsoft) return microsoft;
+
+  // Tier 3: Google branded
+  const google = zhVoices.find((v) =>
+    /google/i.test(v.name)
+  );
+  if (google) return google;
+
+  // Tier 4: Female-coded names (broader net)
   const femaleHint = zhVoices.find((v) =>
     /female|woman|girl|女/i.test(v.name)
   );
   if (femaleHint) return femaleHint;
 
+  // Tier 5: First available zh-CN
   return zhVoices[0];
 }
 

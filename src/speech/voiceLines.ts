@@ -20,8 +20,10 @@ export const VOICE_LINES: Record<VoiceLineKind, readonly string[]> = {
   monkeyMiss: ['再来一次!', '别灰心!', '加油加油!', '差一点!', '下次一定行!'],
   monkeyWin:  ['通关啦!', '太厉害啦!', '满分!', '你是打字小高手!', '完美收官!'],
   monkeyLose: ['再来一局!', '加油!', '下次一定行!', '别灰心哦~', '再来一次!'],
-  // Mole pain: short exclamations, screaming-like ("哎呦!", "啊!")
-  moleHit:    ['哎呦!', '疼啊!', '救命!', '啊~', '哎哟喂!'],
+  // Mole pain: stretched exclamations read as cries — Web Speech TTS pauses
+  // longer on multi-byte repeated characters, so "啊~~~~" sounds more like
+  // a real scream than "啊!" alone.
+  moleHit:    ['哎呦呦!', '疼啊~~~~', '啊啊啊啊!', '哎哟喂~!', '救命啊!'],
   // Mole mockery from taunt bubble — playful, kid-friendly
   moleTaunt:  ['打不到我!', '哈哈!', '来呀!', '你按错啦!', '略略略~']
 };
