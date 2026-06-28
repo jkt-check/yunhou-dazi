@@ -6,7 +6,7 @@
   "moles": {
     "activeCount": 2,
     "spawnInterval": [1000, 1800],
-    "stayTime": 3000
+    "stayTime": 10000
   },
   "sceneConfig": {
     "pool": ["a","s","d","f","g","q","w","e","r","t","z","x","c","v","b"]
