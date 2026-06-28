@@ -11,8 +11,10 @@ export const lettersScene: Scene = {
   getKeysPerMole() { return 1; },
 
   generateKey(ctx: SceneContext): string {
-    const pool = (ctx.sceneConfig.pool as string[]) ?? ['a', 'b', 'c'];
-    return pool[randIndex(pool.length)];
+    const pool = (ctx.sceneConfig.pool as string[]) ?? ['A', 'B', 'C'];
+    // Always emit uppercase so display matches physical keyboard caps (kids see "A"
+    // where the key cap actually says "A"). Match logic stays case-insensitive.
+    return pool[randIndex(pool.length)].toUpperCase();
   },
 
   renderKey(ctx, key, x, y) {

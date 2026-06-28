@@ -9,7 +9,7 @@
     "stayTime": 6000
   },
   "sceneConfig": {
-    "pool": ["a","s","d","f","g","q","w","e","r","t","z","x","c","v","b"]
+    "pool": ["A","S","D","F","G","Q","W","E","R","T","Z","X","C","V","B"]
   },
   "difficulty": 1,
   "winCondition": { "type": "score", "target": 200 },

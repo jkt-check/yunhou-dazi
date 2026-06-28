@@ -9,13 +9,23 @@ describe('letters scene', () => {
   it('generates from configured pool', () => {
     const key = lettersScene.generateKey({
       level: 1, rng: Math.random, history: [],
-      sceneConfig: { pool: ['a', 'b'] }
+      sceneConfig: { pool: ['A', 'B'] }
     });
-    expect(['a', 'b']).toContain(key);
+    expect(['A', 'B']).toContain(key);
   });
 
-  it('matches case-insensitively', () => {
+  it('always emits uppercase letters (regression: lowercase was mismatched with keyboard caps)', () => {
+    // Even when pool is given in lowercase, output is uppercase
+    const key = lettersScene.generateKey({
+      level: 1, rng: Math.random, history: [],
+      sceneConfig: { pool: ['a', 'b', 'c'] }
+    });
+    expect(key).toBe(key.toUpperCase());
+  });
+
+  it('matches case-insensitively (caps + lowercase both work)', () => {
     expect(lettersScene.matches(['A'], 'a')).toBe(true);
+    expect(lettersScene.matches(['a'], 'a')).toBe(true);
     expect(lettersScene.matches(['x'], 'a')).toBe(false);
   });
 
