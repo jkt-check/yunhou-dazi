@@ -9,6 +9,7 @@ vi.mock('@/audio/audioEngine', () => {
       hitForTier: vi.fn(),
       miss: vi.fn(),
       taunt: vi.fn(),
+      moleHit: vi.fn(),
       tierUp: vi.fn(),
       playComboBreak: vi.fn(),
       playPop: vi.fn(),
@@ -51,10 +52,11 @@ describe('audioDirector', () => {
     audioMock = audio as any;
   });
 
-  it('routes mole:hit to audio.hitForTier with the tier from the event', () => {
+  it('routes mole:hit to audio.hitForTier AND audio.moleHit (player whack + mole shriek)', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 3 });
     expect(audioMock.hitForTier).toHaveBeenCalledWith(3);
+    expect(audioMock.moleHit).toHaveBeenCalled();
     d.stop();
   });
 
@@ -156,6 +158,7 @@ describe('audioDirector', () => {
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     bus.emit({ type: 'level:start', levelId: 1 });
     expect(audioMock.hitForTier).not.toHaveBeenCalled();
+    expect(audioMock.moleHit).not.toHaveBeenCalled();
     expect(audioMock.startBgm).toHaveBeenCalled();
     d.stop();
   });
@@ -178,10 +181,12 @@ describe('audioDirector', () => {
   });
 
   describe('voice routing', () => {
-    it('mole:hit triggers voice.speak("hit") when voiceEnabled', () => {
+    it('mole:hit triggers voice.speak("hit") + audio.moleHit + audio.hitForTier when both flags on', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       expect(voice.speak).toHaveBeenCalledWith('hit');
+      expect(audioMock.moleHit).toHaveBeenCalled();
+      expect(audioMock.hitForTier).toHaveBeenCalled();
       d.stop();
     });
 
@@ -222,6 +227,7 @@ describe('audioDirector', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       expect(audioMock.hitForTier).not.toHaveBeenCalled();
+      expect(audioMock.moleHit).not.toHaveBeenCalled();
       expect(voice.speak).toHaveBeenCalledWith('hit');
       d.stop();
     });

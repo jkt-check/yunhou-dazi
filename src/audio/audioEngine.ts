@@ -72,24 +72,75 @@ class AudioEngine {
 
   hit() { this.hitForTier(1); }
 
+  /**
+   * Mole pain response — high-frequency downward shriek on sawtooth wave.
+   * Distinct from hitForTier (player's "whack" — mid-freq upward punch).
+   * Layered with a secondary descending tone for body.
+   */
+  moleHit() {
+    this.play(() => {
+      if (!this.ctx || !this.masterGain) return;
+      // Primary shriek: 800→180Hz over 250ms, sawtooth
+      const primary = this.ctx.createOscillator();
+      const primaryGain = this.ctx.createGain();
+      primary.type = 'sawtooth';
+      primary.frequency.setValueAtTime(800, this.ctx.currentTime);
+      primary.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.25);
+      primaryGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      primaryGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+      primary.connect(primaryGain).connect(this.masterGain);
+      primary.start();
+      primary.stop(this.ctx.currentTime + 0.25);
+
+      // Secondary descending tone for body: 500→120Hz, square, lower gain
+      const secondary = this.ctx.createOscillator();
+      const secondaryGain = this.ctx.createGain();
+      secondary.type = 'square';
+      secondary.frequency.setValueAtTime(500, this.ctx.currentTime);
+      secondary.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.20);
+      secondaryGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      secondaryGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.20);
+      secondary.connect(secondaryGain).connect(this.masterGain);
+      secondary.start();
+      secondary.stop(this.ctx.currentTime + 0.20);
+    });
+  }
+
   miss() {
     this.play(() => this.blip(120, 300, 'sawtooth', 0.2));
   }
 
-  /** Two-tone descending slide for taunt */
+  /**
+   * Two-part taunt: leading "punch" upglide (200→440Hz, 30ms) grabs attention,
+   * then descending slide (440→220Hz, 200ms) gives the mocking tone.
+   * Total ~230ms, peak gain 0.45 — audible above BGM.
+   */
   taunt() {
     this.play(() => {
       if (!this.ctx || !this.masterGain) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
-      osc.connect(gain).connect(this.masterGain);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.15);
+      // Punch: short upglide
+      const punch = this.ctx.createOscillator();
+      const punchGain = this.ctx.createGain();
+      punch.type = 'square';
+      punch.frequency.setValueAtTime(200, this.ctx.currentTime);
+      punch.frequency.exponentialRampToValueAtTime(440, this.ctx.currentTime + 0.03);
+      punchGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
+      punchGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+      punch.connect(punchGain).connect(this.masterGain);
+      punch.start();
+      punch.stop(this.ctx.currentTime + 0.03);
+
+      // Body: descending slide
+      const body = this.ctx.createOscillator();
+      const bodyGain = this.ctx.createGain();
+      body.type = 'triangle';
+      body.frequency.setValueAtTime(440, this.ctx.currentTime + 0.03);
+      body.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.23);
+      bodyGain.gain.setValueAtTime(0.45, this.ctx.currentTime + 0.03);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.23);
+      body.connect(bodyGain).connect(this.masterGain);
+      body.start(this.ctx.currentTime + 0.03);
+      body.stop(this.ctx.currentTime + 0.23);
     });
   }
 

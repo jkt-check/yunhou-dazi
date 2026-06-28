@@ -21,7 +21,10 @@ export function createAudioDirector(
   }));
 
   unsubs.push(bus.on('mole:hit', (e) => {
-    if (sfxOn()) audio.hitForTier(e.tier);
+    if (sfxOn()) {
+      audio.hitForTier(e.tier);  // player's whack
+      audio.moleHit();           // mole's pain shriek
+    }
     if (voiceOn()) voice.speak('hit');
   }));
 
