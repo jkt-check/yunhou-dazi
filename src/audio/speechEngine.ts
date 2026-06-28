@@ -73,7 +73,11 @@ class SpeechEngineImpl implements VoiceEngine {
     const selectedVoice = pickVoice();
     if (selectedVoice) u.voice = selectedVoice;
 
-    synth.cancel();
+    // Do NOT call synth.cancel() here. With per-kind rate limit, different
+    // characters (monkey cheer + mole scream) fire back-to-back on mole:hit —
+    // calling cancel() would clip the first utterance mid-word. Let the
+    // engine queue utterances naturally; cancel() is reserved for explicit
+    // teardown (setEnabled(false), page navigation).
     synth.speak(u);
   }
 

@@ -81,12 +81,13 @@ describe('SpeechEngine', () => {
     expect(speakCalls[0].voice.lang).toBe('zh-CN');
   });
 
-  it('speak() cancels previous utterance before speaking (avoid overlap)', () => {
+  it('speak() DIFFERENT kinds do NOT cancel previous (regression: cross-kind clipping bug)', () => {
     voice.speak('monkeyHit');
-    expect(cancelCalls).toBe(1);  // every speak() cancels first (even when nothing to cancel)
-    // Bypass rate limit so 2nd speak reaches cancel() — different kind so no rate limit anyway
-    voice.speak('monkeyMiss');
-    expect(cancelCalls).toBe(2);
+    expect(cancelCalls).toBe(0);  // first speak — nothing to cancel
+    // Different kind: should NOT cancel the previous utterance (per-kind queue)
+    voice.speak('moleHit');
+    expect(cancelCalls).toBe(0);
+    expect(speakCalls).toHaveLength(2);
   });
 
   it('speak() is suppressed when called within minIntervalMs (1000ms) of last call', () => {
