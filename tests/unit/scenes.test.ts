@@ -32,4 +32,31 @@ describe('letters scene', () => {
   it('returns difficulty multiplier 1.0', () => {
     expect(lettersScene.getDifficultyMultiplier()).toBe(1.0);
   });
+
+  it('renderKey() draws seal badge + character without throwing', () => {
+    const calls: string[] = [];
+    const fakeCtx: any = {
+      save: () => calls.push('save'),
+      restore: () => calls.push('restore'),
+      beginPath: () => {},
+      arc: () => {},
+      fill: () => calls.push('fill'),
+      stroke: () => calls.push('stroke'),
+      fillText: (text: string) => calls.push('fillText:' + text),
+      // setters (assignment, not function)
+      fillStyle: '', strokeStyle: '', lineWidth: 0,
+      font: '', textAlign: '', textBaseline: ''
+    };
+    expect(() => lettersScene.renderKey(fakeCtx, 'A', 50, 50)).not.toThrow();
+    // Verify structure: save → fill+stroke → fillText('A') → restore
+    expect(calls[0]).toBe('save');
+    expect(calls).toContain('fillText:A');
+    expect(calls[calls.length - 1]).toBe('restore');
+  });
+
+  it('getTauntText returns non-empty string', () => {
+    const t = lettersScene.getTauntText!();
+    expect(typeof t).toBe('string');
+    expect(t.length).toBeGreaterThan(0);
+  });
 });
