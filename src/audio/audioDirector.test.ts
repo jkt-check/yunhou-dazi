@@ -181,33 +181,41 @@ describe('audioDirector', () => {
   });
 
   describe('voice routing', () => {
-    it('mole:hit triggers voice.speak("hit") + audio.moleHit + audio.hitForTier when both flags on', () => {
+    it('mole:hit triggers voice.speak("moleHit") + audio.moleHit + audio.hitForTier when both flags on', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
-      expect(voice.speak).toHaveBeenCalledWith('hit');
+      expect(voice.speak).toHaveBeenCalledWith('moleHit');
       expect(audioMock.moleHit).toHaveBeenCalled();
       expect(audioMock.hitForTier).toHaveBeenCalled();
       d.stop();
     });
 
-    it('mole:miss triggers voice.speak("miss") when voiceEnabled', () => {
+    it('mole:miss triggers voice.speak("monkeyMiss") when voiceEnabled', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:miss', holeIndex: 0 });
-      expect(voice.speak).toHaveBeenCalledWith('miss');
+      expect(voice.speak).toHaveBeenCalledWith('monkeyMiss');
       d.stop();
     });
 
-    it('level:complete triggers voice.speak("win") when voiceEnabled', () => {
+    it('mole:taunt triggers voice.speak("moleTaunt") + audio.taunt()', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
+      expect(voice.speak).toHaveBeenCalledWith('moleTaunt');
+      expect(audioMock.taunt).toHaveBeenCalled();
+      d.stop();
+    });
+
+    it('level:complete triggers voice.speak("monkeyWin") when voiceEnabled', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'level:complete', stats: {} as any });
-      expect(voice.speak).toHaveBeenCalledWith('win');
+      expect(voice.speak).toHaveBeenCalledWith('monkeyWin');
       d.stop();
     });
 
-    it('level:fail triggers voice.speak("lose") when voiceEnabled', () => {
+    it('level:fail triggers voice.speak("monkeyLose") when voiceEnabled', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
-      expect(voice.speak).toHaveBeenCalledWith('lose');
+      expect(voice.speak).toHaveBeenCalledWith('monkeyLose');
       d.stop();
     });
 
@@ -216,6 +224,7 @@ describe('audioDirector', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       bus.emit({ type: 'mole:miss', holeIndex: 0 });
+      bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
       bus.emit({ type: 'level:complete', stats: {} as any });
       bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
       expect(voice.speak).not.toHaveBeenCalled();
@@ -228,7 +237,7 @@ describe('audioDirector', () => {
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       expect(audioMock.hitForTier).not.toHaveBeenCalled();
       expect(audioMock.moleHit).not.toHaveBeenCalled();
-      expect(voice.speak).toHaveBeenCalledWith('hit');
+      expect(voice.speak).toHaveBeenCalledWith('moleHit');
       d.stop();
     });
 

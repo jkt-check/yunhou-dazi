@@ -1,4 +1,4 @@
-import { pickLine, type VoiceLineKind } from '@/speech/monkeyLines';
+import { pickLine, type VoiceLineKind } from '@/speech/voiceLines';
 
 const TTS_CONFIG = {
   lang: 'zh-CN',

@@ -23,18 +23,19 @@ export function createAudioDirector(
   unsubs.push(bus.on('mole:hit', (e) => {
     if (sfxOn()) {
       audio.hitForTier(e.tier);  // player's whack
-      audio.moleHit();           // mole's pain shriek
+      audio.moleHit();           // mole's pain shriek (synthesized)
     }
-    if (voiceOn()) voice.speak('hit');
+    if (voiceOn()) voice.speak('moleHit');  // mole screams; monkey cheer suppressed to avoid TTS overlap
   }));
 
   unsubs.push(bus.on('mole:miss', () => {
     if (sfxOn()) audio.miss();
-    if (voiceOn()) voice.speak('miss');
+    if (voiceOn()) voice.speak('monkeyMiss');
   }));
 
   unsubs.push(bus.on('mole:taunt', () => {
-    if (sfxOn()) audio.taunt();
+    if (sfxOn()) audio.taunt();           // synthesized descending slide
+    if (voiceOn()) voice.speak('moleTaunt');  // mole's spoken mockery
   }));
 
   unsubs.push(bus.on('combo:tier-up', () => {
@@ -57,13 +58,13 @@ export function createAudioDirector(
   unsubs.push(bus.on('level:complete', () => {
     audio.stopBgm();
     if (sfxOn()) audio.win();
-    if (voiceOn()) voice.speak('win');
+    if (voiceOn()) voice.speak('monkeyWin');
   }));
 
   unsubs.push(bus.on('level:fail', () => {
     audio.stopBgm();
     if (sfxOn()) audio.lose();
-    if (voiceOn()) voice.speak('lose');
+    if (voiceOn()) voice.speak('monkeyLose');
   }));
 
   unsubs.push(bus.on('achievement:unlocked', () => {
