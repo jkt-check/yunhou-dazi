@@ -50,6 +50,7 @@ const fakeManifest = {
     monkeyMiss: [{ file: '/voice/monkeyMiss/0.m4a', text: '再来一次!' }],
     monkeyWin: [{ file: '/voice/monkeyWin/0.m4a', text: '通关啦!' }],
     monkeyLose: [{ file: '/voice/monkeyLose/0.m4a', text: '再来一局!' }],
+    monkeyGreeting: [{ file: '/voice/monkeyGreeting/0.m4a', text: '准备好啦?' }],
     moleHit: [{ file: '/voice/moleHit/0.m4a', text: '哎呦呦!' }],
     moleTaunt: [{ file: '/voice/moleTaunt/0.m4a', text: '打不到我!' }]
   }
@@ -74,8 +75,11 @@ describe('FileSpeechEngine', () => {
     (voice as any).pool = {};
     (voice as any).current = {};
     (voice as any).lastSpeakAtByKind = {};
-    (voice as any).loadPromise = null;
-    // Wait for the eager load() from module init to resolve
+    (voice as any).manifestPromise = null;
+    // Wait for the eager prefetchManifest() from module init to resolve,
+    // then explicitly preload everything (back-compat with the old load()
+    // API). This mirrors the production boot path of `prefetchManifest()`,
+    // but the tests still expect eager population to assert on pool contents.
     await voice.load();
   });
 
@@ -88,7 +92,7 @@ describe('FileSpeechEngine', () => {
     expect((voice as any).pool.monkeyHit).toHaveLength(1);
     expect((voice as any).pool.moleHit).toHaveLength(1);
     // Audio constructor was called once per manifest entry
-    expect(MockAudio.created.length).toBe(6);
+    expect(MockAudio.created.length).toBe(7);
   });
 
   it('speak() plays audio for the matching kind', async () => {
@@ -123,7 +127,7 @@ describe('FileSpeechEngine', () => {
   });
 
   it('speak() is no-op when manifest not loaded yet', async () => {
-    (voice as any).loadPromise = null;
+    (voice as any).manifestPromise = null;
     (voice as any).manifest = null;
     (voice as any).pool = {};
     voice.speak('monkeyHit');
@@ -143,5 +147,25 @@ describe('FileSpeechEngine', () => {
     for (const k of kinds) {
       expect((voice as any).pool[k].length).toBeGreaterThan(0);
     }
+  });
+
+  it('speak() lazily creates the pool for a kind on first use (regression: review round 1)', async () => {
+    // Regression fix (review round 1): production code uses prefetchManifest
+    // (no eager Audio creation). Verify lazy pool creation works without
+    // calling load() first.
+    (voice as any).manifestPromise = null;
+    (voice as any).manifest = null;
+    (voice as any).pool = {};
+    await voice.prefetchManifest();
+    // No Audio elements created yet
+    const beforeCount = MockAudio.created.length;
+    expect((voice as any).pool.monkeyHit).toBeUndefined();
+    voice.speak('monkeyHit');
+    await new Promise(r => setTimeout(r, 0));
+    // Pool populated lazily, audio played
+    expect((voice as any).pool.monkeyHit).toBeDefined();
+    expect((voice as any).pool.monkeyHit.length).toBeGreaterThan(0);
+    expect(MockAudio.created.length).toBeGreaterThan(beforeCount);
+    expect(MockAudio.played.length).toBe(1);
   });
 });
