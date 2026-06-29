@@ -1,4 +1,4 @@
-import { pickLine, type VoiceLineKind } from '@/speech/voiceLines';
+import { type VoiceLineKind } from '@/speech/voiceLines';
 
 /**
  * Per-kind rate limit window. Different characters (monkey vs mole) can
@@ -14,6 +14,7 @@ export interface VoiceEngine {
   cancel(): void;
   setEnabled(enabled: boolean): void;
   isSupported(): boolean;
+  load(manifestUrl?: string): Promise<void>;
 }
 
 /**
@@ -60,7 +61,12 @@ class FileSpeechEngineImpl implements VoiceEngine {
         }
         await Promise.all(all);
       } catch (err) {
-        console.warn('[speechEngine] load failed, voice will be silent:', err);
+        // Suppress the benign "manifest missing" warn in tests — happy-dom
+        // rejects relative fetches and would otherwise spam test output
+        // (regression H4).
+        if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+          console.warn('[speechEngine] load failed, voice will be silent:', err);
+        }
       }
     })();
     return this.loadPromise;
@@ -131,6 +137,10 @@ export const voice: VoiceEngine = new FileSpeechEngineImpl();
 
 // Eagerly load manifest on module init so audio is ready when first speak() fires.
 // (speak() is a no-op until load() resolves, so this is safe even on slow networks.)
-if (typeof window !== 'undefined') {
+//
+// Skip in test env (vitest sets import.meta.env.MODE = 'test') — happy-dom's
+// fetch rejects relative URLs without a base, polluting test output with
+// ERR_INVALID_URL warnings. (regression H4)
+if (typeof window !== 'undefined' && import.meta.env.MODE !== 'test') {
   voice.load();
 }

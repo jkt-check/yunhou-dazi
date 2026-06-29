@@ -6,7 +6,9 @@ import type { AchievementsState } from '@/store/slices/achievements';
 const baseGame: GameState = {
   status: 'playing', currentLevel: 1, score: 0, combo: 0, maxCombo: 0,
   hits: 0, misses: 0, lives: 5, elapsedMs: 0, responseTimes: [],
-  activeMoles: [], recentHitKey: null, startTime: null
+  activeMoles: [], recentHitKey: null, startTime: null,
+  comboTier: 1, comboStarCount: 0, lastTierUpgradeAt: 0, lastTier: 1,
+  currentTaunt: null, starsEarned: 0
 };
 
 const baseAch: AchievementsState = {

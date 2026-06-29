@@ -24,6 +24,10 @@ export class GameEngine {
   private rafId: number | null = null;
   private currentMoles: Mole[] = [];
   private spawner!: Spawner;
+  // Track last-observed lives so life:warning re-fires when lives recovers
+  // above 2 and drops again (regression B1 — was one-shot).
+  private lastLives: number | null = null;
+  private finaleEmitted = false;
 
   constructor(private hooks: EngineHooks) {
     gameStore.set(() => ({
@@ -155,6 +159,22 @@ export class GameEngine {
     const elapsedMs = now - (state.startTime ?? now);
     let newMissed = 0;
     let shouldFail: FailReason | null = null;
+
+    // ── Emit state-transition events on threshold cross ────────────────
+    // Low-life heartbeat: fire on the transition INTO lives ≤ 2 (was one-shot
+    // before — now re-fires if lives recover >2 and drop again).
+    if (this.lastLives !== state.lives) {
+      if (state.lives <= 2 && (this.lastLives === null || this.lastLives > 2)) {
+        this.hooks.bus.emit({ type: 'life:warning', lives: state.lives });
+      }
+      this.lastLives = state.lives;
+    }
+    // Finale: last 10 seconds, once per level.
+    const remainingMs = this.hooks.level.duration * 1000 - elapsedMs;
+    if (!this.finaleEmitted && remainingMs > 0 && remainingMs <= 10000) {
+      this.finaleEmitted = true;
+      this.hooks.bus.emit({ type: 'level:finale', remainingMs });
+    }
 
     for (const m of this.currentMoles) {
       const before = m.state;

@@ -1,0 +1,70 @@
+<h2>Combo 分级反馈 — 4 档对比</h2>
+<p class="subtitle">同样的"按下去,打中地鼠",每一档都在视觉/听觉上升级。HUD 上的连击数字是锚点,周围是爆发感。</p>
+
+<div class="cards">
+  <div class="card" data-choice="tier1" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Tier 1 — 起步 (combo 1-4)</h3>
+      <p>轻量反馈,告诉孩子"对了!"</p>
+      <ul style="font-size:13px;line-height:1.5;color:var(--ink-muted);padding-left:18px;margin-top:8px">
+        <li>字符印章盖下 (0.25s, cubic-bezier 印章感)</li>
+        <li>4-6 颗墨点粒子向外溅</li>
+        <li>命中音 220Hz + 0.06s 延音</li>
+        <li>HUD 连击数字 +1 弹一下 (1.0→1.15→1.0)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" data-choice="tier2" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Tier 2 — 起势 (combo 5-9)</h3>
+      <p>画面"温暖起来",开始有节奏</p>
+      <ul style="font-size:13px;line-height:1.5;color:var(--ink-muted);padding-left:18px;margin-top:8px">
+        <li>屏幕上叠加一层暖色 (蜜金 8% opacity)</li>
+        <li>粒子变成 12 颗带尾巴的墨点 (0.4s 飞行)</li>
+        <li>命中音升到 330Hz,加 440Hz 和声</li>
+        <li>猴子抬手幅度更大 (+20%)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" data-choice="tier3" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Tier 3 — 上头 (combo 10-19)</h3>
+      <p>屏幕要"震一下",但不能眼花</p>
+      <ul style="font-size:13px;line-height:1.5;color:var(--ink-muted);padding-left:18px;margin-top:8px">
+        <li>屏幕微震 4px (持续 0.15s, ease-out)</li>
+        <li>画面叠加蜜金 15%,边缘加柔光 vignette</li>
+        <li>命中音 440Hz + 660Hz 双音 + 短回响</li>
+        <li>猴子原地跳 + 槌画半圆,带"嘿!"声</li>
+        <li>HUD 连击框描边变朱砂色,数字 1.4× 弹跳</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" data-choice="tier4" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Tier 4 — 燃烧 (combo 20+)</h3>
+      <p>孩子会指着屏幕喊 "看!我连了这么多!"</p>
+      <ul style="font-size:13px;line-height:1.5;color:var(--ink-muted);padding-left:18px;margin-top:8px">
+        <li>屏幕震 6px + 背景纸纹滚动 4px</li>
+        <li>整屏朱砂 + 蜜金光晕从中央向外脉冲</li>
+        <li>命中音三音阶 (440+660+880Hz) + 胜利短号</li>
+        <li>猴子跳跃 + 360° 转槌,落地时小星爆</li>
+        <li>空中飘"连击x20!"的飞字 (从中央升起,2s 淡出)</li>
+        <li>每 hit 加 1 颗⭐(右上角进度条累计,满 10 颗通关)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;padding:16px;background:var(--paper-shadow);border-radius:12px">
+  <h3>共通原则</h3>
+  <ul style="line-height:1.7;padding-left:18px">
+    <li><strong>前 1-2 帧必须看到反馈</strong>:按键到粒子出现 &lt; 32ms (1 帧),不能等动画</li>
+    <li><strong>不要遮挡地鼠</strong>:粒子从地鼠中心出发,持续 0.3-0.6s,不向屏幕中心扩散</li>
+    <li><strong>HUD 数字始终可读</strong>:震动时数字 bg 半透明 paper 衬底,不消失</li>
+    <li><strong>任何 tier 都不锁输入</strong>:反馈是视觉的,不影响下一次按键判定</li>
+    <li><strong>每次升级有"叮!"提示音</strong>:升级瞬间 880Hz 短音 (0.1s),独立于 hit 音</li>
+  </ul>
+</div>

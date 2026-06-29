@@ -1,0 +1,97 @@
+<h2>漏掉 = 地鼠嘲讽 (调皮型)</h2>
+<p class="subtitle">从"惩罚"变成"小反派登场"。漏掉的瞬间，地鼠有 400ms 的表演时间——吐舌、眯眼、说话。</p>
+
+<div class="mockup" style="background:var(--paper);">
+  <div class="mockup-header">状态 1: 正常 active (参考) — 立耳 + 露牙</div>
+  <div class="mockup-body" style="display:flex;align-items:center;justify-content:center;gap:24px;padding:24px">
+    <div style="position:relative;width:200px;height:140px;display:flex;align-items:flex-end;justify-content:center">
+      <svg viewBox="0 0 100 100" width="120" height="120" style="margin-bottom:-20px">
+        <!-- hole mound -->
+        <ellipse cx="50" cy="80" rx="42" ry="14" fill="#8B6F47" stroke="#2C1810" stroke-width="2"/>
+        <ellipse cx="50" cy="73" rx="28" ry="11" fill="#2C1810"/>
+        <!-- mole body -->
+        <ellipse cx="50" cy="50" rx="24" ry="28" fill="#8B6F47" stroke="#2C1810" stroke-width="2.5"/>
+        <circle cx="50" cy="40" r="20" fill="#8B6F47" stroke="#2C1810" stroke-width="2.5"/>
+        <!-- ears up -->
+        <ellipse cx="32" cy="22" rx="6" ry="8" fill="#8B6F47" stroke="#2C1810" stroke-width="2"/>
+        <ellipse cx="68" cy="22" rx="6" ry="8" fill="#8B6F47" stroke="#2C1810" stroke-width="2"/>
+        <!-- eyes normal -->
+        <circle cx="42" cy="38" r="5" fill="#FAF3E0" stroke="#2C1810" stroke-width="1.5"/>
+        <circle cx="58" cy="38" r="5" fill="#FAF3E0" stroke="#2C1810" stroke-width="1.5"/>
+        <circle cx="42" cy="38" r="2.5" fill="#2C1810"/>
+        <circle cx="58" cy="38" r="2.5" fill="#2C1810"/>
+        <!-- teeth -->
+        <rect x="46" y="47" width="3" height="5" fill="#FAF3E0" stroke="#2C1810" stroke-width="1"/>
+        <rect x="51" y="47" width="3" height="5" fill="#FAF3E0" stroke="#2C1810" stroke-width="1"/>
+        <!-- nose -->
+        <circle cx="50" cy="45" r="3" fill="#FFC0CB" stroke="#2C1810" stroke-width="1"/>
+      </svg>
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:#F5EBD7;border:3px solid #C44536;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:bold;font-size:24px;color:#C44536">a</div>
+    </div>
+    <div style="font-size:13px;color:var(--ink-muted);max-width:200px">
+      ↑ 当前状态:正常立在洞口，身上有字符印。点击可打中。
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="background:var(--paper);margin-top:20px">
+  <div class="mockup-header">状态 2: 漏掉进入 TAUNT — 吐舌 + 眯眼 + 对话气泡</div>
+  <div class="mockup-body" style="display:flex;align-items:center;justify-content:center;gap:32px;padding:32px;position:relative">
+    <div style="position:relative;width:280px;height:200px;display:flex;align-items:flex-end;justify-content:center">
+      <!-- taunt speech bubble -->
+      <div style="position:absolute;top:0;right:-10px;background:#F5EBD7;border:2.5px solid #C44536;border-radius:20px;padding:6px 14px;font-family:'ZCOOL KuaiLe',cursive;font-size:18px;color:#C44536;transform:rotate(-5deg);box-shadow:2px 2px 0 #2C1810">
+        嘿嘿~
+        <div style="position:absolute;bottom:-10px;left:18px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid #C44536"></div>
+      </div>
+      <svg viewBox="0 0 100 100" width="140" height="140" style="margin-bottom:-20px">
+        <!-- hole mound -->
+        <ellipse cx="50" cy="80" rx="42" ry="14" fill="#8B6F47" stroke="#2C1810" stroke-width="2"/>
+        <ellipse cx="50" cy="73" rx="28" ry="11" fill="#2C1810"/>
+        <!-- mole body slightly tilted -->
+        <g transform="rotate(8 50 50)">
+          <ellipse cx="50" cy="50" rx="24" ry="28" fill="#8B6F47" stroke="#2C1810" stroke-width="2.5"/>
+          <circle cx="50" cy="40" r="20" fill="#8B6F47" stroke="#2C1810" stroke-width="2.5"/>
+          <!-- ears floppy -->
+          <ellipse cx="34" cy="28" rx="7" ry="6" fill="#8B6F47" stroke="#2C1810" stroke-width="2" transform="rotate(20 34 28)"/>
+          <ellipse cx="66" cy="28" rx="7" ry="6" fill="#8B6F47" stroke="#2C1810" stroke-width="2" transform="rotate(-20 66 28)"/>
+          <!-- eyes squinting (arcs) -->
+          <path d="M 36 38 Q 42 32 48 38" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M 52 38 Q 58 32 64 38" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- mouth open with tongue -->
+          <ellipse cx="50" cy="50" rx="5" ry="4" fill="#2C1810"/>
+          <ellipse cx="50" cy="51" rx="3" ry="2.5" fill="#FF6B8A"/>
+          <!-- cheeks pink -->
+          <ellipse cx="35" cy="46" rx="4" ry="3" fill="#FFB6C1" opacity="0.7"/>
+          <ellipse cx="65" cy="46" rx="4" ry="3" fill="#FFB6C1" opacity="0.7"/>
+        </g>
+        <!-- shake hint -->
+      </svg>
+    </div>
+    <div style="font-size:13px;color:var(--ink-muted);max-width:240px;line-height:1.6">
+      <strong>400ms 后才 retreat。</strong><br>
+      ↑ 漏掉瞬间:身体微倾 8°、眯眼笑、吐舌、对话气泡随机出现"嘿嘿~""瞄~""差一点~""再来呀~"。<br><br>
+      <strong>音频</strong>: 440Hz → 220Hz 下滑 0.15s(短促"波~")。<br>
+      <strong>生命-1 仍然扣</strong>,但这 400ms 让孩子有"想再来"的反应时间。
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;padding:16px;background:var(--paper-shadow);border-radius:12px">
+  <h3>文案池 (从 5 个里随机)</h3>
+  <p style="line-height:1.7;font-family:'ZCOOL KuaiLe',cursive;font-size:17px;color:var(--ink)">
+    "嘿嘿~" · "瞄~" · "差一点~" · "再来呀~" · "哎?没中~"
+  </p>
+  <p style="line-height:1.6;font-size:13px;color:var(--ink-muted);margin-top:8px">
+    刻意避开"笨""错"等负面词。"瞄~"借鉴猫咪叫声,孩子接受度高;5 个里至少 1 个会让孩子笑。
+  </p>
+</div>
+
+<div class="section" style="margin-top:16px;padding:16px;background:var(--paper);border:2px dashed var(--ochre);border-radius:12px">
+  <h3>实现提示</h3>
+  <ul style="line-height:1.7;padding-left:18px;font-size:13px">
+    <li>Mole 加 <code>state: 'taunting'</code> 分支,<code>advanceMole</code> 处理 400ms 计时</li>
+    <li>渲染时根据 state 切 sprite 路径 (现有 <code>drawMole</code> 加 <code>mode: 'normal' | 'taunt'</code> 参数)</li>
+    <li>气泡用 DOM 浮层 (positioned over canvas) — 比 Canvas 画文字好对齐</li>
+    <li>文案池放 <code>src/scenes/letters.ts</code> 里导出,场景可独立配置</li>
+  </ul>
+</div>

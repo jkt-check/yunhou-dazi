@@ -78,4 +78,45 @@ describe('AudioEngine moleHit SFX (regression: no mole pain response)', () => {
     const types = oscStarts.map(s => s.type);
     expect(types.some(t => t === 'sawtooth' || t === 'square')).toBe(true);
   });
+
+  it('moleHit() emits 3 distinct oscillators (sawtooth + square + triangle)', () => {
+    const types: string[] = [];
+    const fakeCtx3: any = {
+      state: 'running',
+      currentTime: 0,
+      destination: {},
+      createGain: () => ({
+        gain: {
+          value: 0,
+          setValueAtTime: vi.fn(),
+          exponentialRampToValueAtTime: vi.fn(),
+          linearRampToValueAtTime: vi.fn(),
+          cancelScheduledValues: vi.fn()
+        },
+        connect: vi.fn().mockReturnThis()
+      }),
+      createOscillator: () => {
+        const o: any = {
+          type: '',
+          frequency: {
+            value: 0,
+            setValueAtTime: vi.fn(),
+            exponentialRampToValueAtTime: vi.fn()
+          },
+          connect: vi.fn().mockReturnThis(),
+          start: vi.fn(() => { types.push(o.type); }),
+          stop: vi.fn()
+        };
+        return o;
+      },
+      resume: vi.fn()
+    };
+    (window as any).AudioContext = function () { return fakeCtx3; };
+    (audio as any).ctx = null;
+    audio.moleHit();
+    expect(types).toContain('sawtooth');
+    expect(types).toContain('square');
+    expect(types).toContain('triangle');
+    expect(types.length).toBeGreaterThanOrEqual(3);
+  });
 });

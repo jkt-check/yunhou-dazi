@@ -1,136 +1,694 @@
 {
-  "generated": "2026-06-28T13:25:07.895Z",
+  "generated": "2026-06-28T16:05:08.600Z",
   "lines": {
     "monkeyHit": [
       {
-        "file": "/voice/monkeyHit/0.m4a",
-        "text": "太棒啦!"
+        "file": "/voice/monkeyHit/0.mp3",
+        "text": "太棒啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.15,
+        "size": 19846
       },
       {
-        "file": "/voice/monkeyHit/1.m4a",
-        "text": "打中啦!"
+        "file": "/voice/monkeyHit/1.mp3",
+        "text": "打中啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 20422
       },
       {
-        "file": "/voice/monkeyHit/2.m4a",
-        "text": "真准!"
+        "file": "/voice/monkeyHit/2.mp3",
+        "text": "真准",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.1,
+        "size": 20998
       },
       {
-        "file": "/voice/monkeyHit/3.m4a",
-        "text": "好厉害!"
+        "file": "/voice/monkeyHit/3.mp3",
+        "text": "好厉害",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.15,
+        "size": 18694
       },
       {
-        "file": "/voice/monkeyHit/4.m4a",
-        "text": "再来一个!"
+        "file": "/voice/monkeyHit/4.mp3",
+        "text": "再来一个",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 23302
+      },
+      {
+        "file": "/voice/monkeyHit/5.mp3",
+        "text": "手速真快",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 26758
+      },
+      {
+        "file": "/voice/monkeyHit/6.mp3",
+        "text": "完美",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 17542
+      },
+      {
+        "file": "/voice/monkeyHit/7.mp3",
+        "text": "势如破竹",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 23302
+      },
+      {
+        "file": "/voice/monkeyHit/8.mp3",
+        "text": "冲鸭",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 17542
+      },
+      {
+        "file": "/voice/monkeyHit/9.mp3",
+        "text": "加油加油",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 27334
       }
     ],
     "monkeyMiss": [
       {
-        "file": "/voice/monkeyMiss/0.m4a",
-        "text": "再来一次!"
+        "file": "/voice/monkeyMiss/0.mp3",
+        "text": "再来一次",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.95,
+        "size": 29062
       },
       {
-        "file": "/voice/monkeyMiss/1.m4a",
-        "text": "别灰心!"
+        "file": "/voice/monkeyMiss/1.mp3",
+        "text": "别灰心",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 32518
       },
       {
-        "file": "/voice/monkeyMiss/2.m4a",
-        "text": "加油加油!"
+        "file": "/voice/monkeyMiss/2.mp3",
+        "text": "加油加油",
+        "voice": "cute_boy",
+        "emotion": "neutral",
+        "speed": 1,
+        "size": 30790
       },
       {
-        "file": "/voice/monkeyMiss/3.m4a",
-        "text": "差一点!"
+        "file": "/voice/monkeyMiss/3.mp3",
+        "text": "差一点",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.95,
+        "size": 29638
       },
       {
-        "file": "/voice/monkeyMiss/4.m4a",
-        "text": "下次一定行!"
+        "file": "/voice/monkeyMiss/4.mp3",
+        "text": "下次一定行",
+        "voice": "clever_boy",
+        "emotion": "neutral",
+        "speed": 0.95,
+        "size": 34822
+      },
+      {
+        "file": "/voice/monkeyMiss/5.mp3",
+        "text": "稳住",
+        "voice": "cute_boy",
+        "emotion": "neutral",
+        "speed": 0.9,
+        "size": 23878
+      },
+      {
+        "file": "/voice/monkeyMiss/6.mp3",
+        "text": "深呼吸",
+        "voice": "cute_boy",
+        "emotion": "neutral",
+        "speed": 0.85,
+        "size": 31366
+      },
+      {
+        "file": "/voice/monkeyMiss/7.mp3",
+        "text": "别放弃",
+        "voice": "clever_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 25606
+      },
+      {
+        "file": "/voice/monkeyMiss/8.mp3",
+        "text": "相信自己",
+        "voice": "clever_boy",
+        "emotion": "neutral",
+        "speed": 0.95,
+        "size": 29638
+      },
+      {
+        "file": "/voice/monkeyMiss/9.mp3",
+        "text": "坚持就是胜利",
+        "voice": "clever_boy",
+        "emotion": "neutral",
+        "speed": 0.9,
+        "size": 33670
+      }
+    ],
+    "monkeyCombo2": [
+      {
+        "file": "/voice/monkeyCombo2/0.mp3",
+        "text": "2连击",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 21574
+      },
+      {
+        "file": "/voice/monkeyCombo2/1.mp3",
+        "text": "继续",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.15,
+        "size": 21574
+      },
+      {
+        "file": "/voice/monkeyCombo2/2.mp3",
+        "text": "再加把劲",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.1,
+        "size": 23302
+      },
+      {
+        "file": "/voice/monkeyCombo2/3.mp3",
+        "text": "手感来了",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.2,
+        "size": 26758
+      },
+      {
+        "file": "/voice/monkeyCombo2/4.mp3",
+        "text": "不错不错",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.15,
+        "size": 27334
+      }
+    ],
+    "monkeyCombo3": [
+      {
+        "file": "/voice/monkeyCombo3/0.mp3",
+        "text": "3连击",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.25,
+        "size": 20422
+      },
+      {
+        "file": "/voice/monkeyCombo3/1.mp3",
+        "text": "太神啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 18694
+      },
+      {
+        "file": "/voice/monkeyCombo3/2.mp3",
+        "text": "势如破竹",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.25,
+        "size": 27334
+      },
+      {
+        "file": "/voice/monkeyCombo3/3.mp3",
+        "text": "停不下来啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 24454
+      },
+      {
+        "file": "/voice/monkeyCombo3/4.mp3",
+        "text": "冲冲冲",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 18118
+      }
+    ],
+    "monkeyCombo4": [
+      {
+        "file": "/voice/monkeyCombo4/0.mp3",
+        "text": "完美节奏",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 21574
+      },
+      {
+        "file": "/voice/monkeyCombo4/1.mp3",
+        "text": "神仙手速",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 23302
+      },
+      {
+        "file": "/voice/monkeyCombo4/2.mp3",
+        "text": "你太牛啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 22150
+      },
+      {
+        "file": "/voice/monkeyCombo4/3.mp3",
+        "text": "无人能挡",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 24454
+      },
+      {
+        "file": "/voice/monkeyCombo4/4.mp3",
+        "text": "见证奇迹",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.25,
+        "size": 25030
       }
     ],
     "monkeyWin": [
       {
-        "file": "/voice/monkeyWin/0.m4a",
-        "text": "通关啦!"
+        "file": "/voice/monkeyWin/0.mp3",
+        "text": "通关啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 24454
       },
       {
-        "file": "/voice/monkeyWin/1.m4a",
-        "text": "太厉害啦!"
+        "file": "/voice/monkeyWin/1.mp3",
+        "text": "太厉害啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.05,
+        "size": 30214
       },
       {
-        "file": "/voice/monkeyWin/2.m4a",
-        "text": "满分!"
+        "file": "/voice/monkeyWin/2.mp3",
+        "text": "满分",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.1,
+        "size": 20422
       },
       {
-        "file": "/voice/monkeyWin/3.m4a",
-        "text": "你是打字小高手!"
+        "file": "/voice/monkeyWin/3.mp3",
+        "text": "你是打字小高手",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 35398
       },
       {
-        "file": "/voice/monkeyWin/4.m4a",
-        "text": "完美收官!"
+        "file": "/voice/monkeyWin/4.mp3",
+        "text": "完美收官",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 26758
+      },
+      {
+        "file": "/voice/monkeyWin/5.mp3",
+        "text": "最佳成绩",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 28486
+      },
+      {
+        "file": "/voice/monkeyWin/6.mp3",
+        "text": "太牛啦",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.1,
+        "size": 28486
+      },
+      {
+        "file": "/voice/monkeyWin/7.mp3",
+        "text": "你是打字大师",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 34246
+      },
+      {
+        "file": "/voice/monkeyWin/8.mp3",
+        "text": "继续保持",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 0.95,
+        "size": 30214
+      },
+      {
+        "file": "/voice/monkeyWin/9.mp3",
+        "text": "下一关更精彩",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1,
+        "size": 40582
       }
     ],
     "monkeyLose": [
       {
-        "file": "/voice/monkeyLose/0.m4a",
-        "text": "再来一局!"
+        "file": "/voice/monkeyLose/0.mp3",
+        "text": "再来一局",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.85,
+        "size": 35398
       },
       {
-        "file": "/voice/monkeyLose/1.m4a",
-        "text": "加油!"
+        "file": "/voice/monkeyLose/1.mp3",
+        "text": "加油",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 24454
       },
       {
-        "file": "/voice/monkeyLose/2.m4a",
-        "text": "下次一定行!"
+        "file": "/voice/monkeyLose/2.mp3",
+        "text": "下次一定行",
+        "voice": "clever_boy",
+        "emotion": "neutral",
+        "speed": 0.9,
+        "size": 29638
       },
       {
-        "file": "/voice/monkeyLose/3.m4a",
-        "text": "别灰心哦~"
+        "file": "/voice/monkeyLose/3.mp3",
+        "text": "别灰心哦",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.85,
+        "size": 33670
       },
       {
-        "file": "/voice/monkeyLose/4.m4a",
-        "text": "再来一次!"
+        "file": "/voice/monkeyLose/4.mp3",
+        "text": "再来一次",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 31366
+      },
+      {
+        "file": "/voice/monkeyLose/5.mp3",
+        "text": "你已经很棒了",
+        "voice": "clever_boy",
+        "emotion": "sad",
+        "speed": 0.85,
+        "size": 33670
+      },
+      {
+        "file": "/voice/monkeyLose/6.mp3",
+        "text": "继续加油",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 34246
+      },
+      {
+        "file": "/voice/monkeyLose/7.mp3",
+        "text": "下次一定通关",
+        "voice": "clever_boy",
+        "emotion": "neutral",
+        "speed": 0.9,
+        "size": 35974
+      }
+    ],
+    "monkeyLowLife": [
+      {
+        "file": "/voice/monkeyLowLife/0.mp3",
+        "text": "小心",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 1,
+        "size": 24454
+      },
+      {
+        "file": "/voice/monkeyLowLife/1.mp3",
+        "text": "坚持住",
+        "voice": "clever_boy",
+        "emotion": "sad",
+        "speed": 0.95,
+        "size": 25030
+      },
+      {
+        "file": "/voice/monkeyLowLife/2.mp3",
+        "text": "稳住别慌",
+        "voice": "cute_boy",
+        "emotion": "sad",
+        "speed": 0.9,
+        "size": 36550
+      },
+      {
+        "file": "/voice/monkeyLowLife/3.mp3",
+        "text": "注意安全",
+        "voice": "clever_boy",
+        "emotion": "sad",
+        "speed": 0.95,
+        "size": 26758
+      }
+    ],
+    "monkeyFinale": [
+      {
+        "file": "/voice/monkeyFinale/0.mp3",
+        "text": "最后冲刺",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 23302
+      },
+      {
+        "file": "/voice/monkeyFinale/1.mp3",
+        "text": "冲刺冲刺",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 29062
+      },
+      {
+        "file": "/voice/monkeyFinale/2.mp3",
+        "text": "坚持到底",
+        "voice": "clever_boy",
+        "emotion": "happy",
+        "speed": 1.25,
+        "size": 24454
+      },
+      {
+        "file": "/voice/monkeyFinale/3.mp3",
+        "text": "就是现在",
+        "voice": "cute_boy",
+        "emotion": "happy",
+        "speed": 1.3,
+        "size": 22150
       }
     ],
     "moleHit": [
       {
-        "file": "/voice/moleHit/0.m4a",
-        "text": "哎呦呦!"
+        "file": "/voice/moleHit/0.mp3",
+        "text": "哎呦",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 2,
+        "size": 17542
       },
       {
-        "file": "/voice/moleHit/1.m4a",
-        "text": "疼啊~~~~"
+        "file": "/voice/moleHit/1.mp3",
+        "text": "疼疼疼",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 2,
+        "size": 19270
       },
       {
-        "file": "/voice/moleHit/2.m4a",
-        "text": "啊啊啊啊!"
+        "file": "/voice/moleHit/2.mp3",
+        "text": "我的头",
+        "voice": "lovely_girl",
+        "emotion": "surprised",
+        "speed": 1.25,
+        "pitch": 1,
+        "size": 15238
       },
       {
-        "file": "/voice/moleHit/3.m4a",
-        "text": "哎哟喂~!"
+        "file": "/voice/moleHit/3.mp3",
+        "text": "啊呀呀",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 3,
+        "size": 16966
       },
       {
-        "file": "/voice/moleHit/4.m4a",
-        "text": "救命啊!"
+        "file": "/voice/moleHit/4.mp3",
+        "text": "别打我",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.2,
+        "pitch": 2,
+        "size": 19846
+      },
+      {
+        "file": "/voice/moleHit/5.mp3",
+        "text": "放过我",
+        "voice": "lovely_girl",
+        "emotion": "sad",
+        "speed": 1.2,
+        "pitch": 1,
+        "size": 22150
+      },
+      {
+        "file": "/voice/moleHit/6.mp3",
+        "text": "哎呦呦",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 3,
+        "size": 20998
+      },
+      {
+        "file": "/voice/moleHit/7.mp3",
+        "text": "疼啊",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 2,
+        "size": 18694
+      },
+      {
+        "file": "/voice/moleHit/8.mp3",
+        "text": "哎哟喂",
+        "voice": "lovely_girl",
+        "emotion": "surprised",
+        "speed": 1.25,
+        "pitch": 2,
+        "size": 17542
+      },
+      {
+        "file": "/voice/moleHit/9.mp3",
+        "text": "救命啊",
+        "voice": "lovely_girl",
+        "emotion": "fearful",
+        "speed": 1.3,
+        "pitch": 3,
+        "size": 19270
       }
     ],
     "moleTaunt": [
       {
-        "file": "/voice/moleTaunt/0.m4a",
-        "text": "打不到我!"
+        "file": "/voice/moleTaunt/0.mp3",
+        "text": "打不到我",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1,
+        "pitch": 4,
+        "size": 24454
       },
       {
-        "file": "/voice/moleTaunt/1.m4a",
-        "text": "哈哈!"
+        "file": "/voice/moleTaunt/1.mp3",
+        "text": "哈哈",
+        "voice": "lovely_girl",
+        "emotion": "happy",
+        "speed": 1.1,
+        "pitch": 4,
+        "size": 20998
       },
       {
-        "file": "/voice/moleTaunt/2.m4a",
-        "text": "来呀!"
+        "file": "/voice/moleTaunt/2.mp3",
+        "text": "来呀",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1,
+        "pitch": 4,
+        "size": 18694
       },
       {
-        "file": "/voice/moleTaunt/3.m4a",
-        "text": "你按错啦!"
+        "file": "/voice/moleTaunt/3.mp3",
+        "text": "你按错啦",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1.05,
+        "pitch": 3,
+        "size": 25606
       },
       {
-        "file": "/voice/moleTaunt/4.m4a",
-        "text": "略略略~"
+        "file": "/voice/moleTaunt/4.mp3",
+        "text": "略略略",
+        "voice": "lovely_girl",
+        "emotion": "happy",
+        "speed": 1.1,
+        "pitch": 4,
+        "size": 20998
+      },
+      {
+        "file": "/voice/moleTaunt/5.mp3",
+        "text": "瞄",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1,
+        "pitch": 5,
+        "size": 15814
+      },
+      {
+        "file": "/voice/moleTaunt/6.mp3",
+        "text": "太慢啦",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1.05,
+        "pitch": 4,
+        "size": 20998
+      },
+      {
+        "file": "/voice/moleTaunt/7.mp3",
+        "text": "你来呀",
+        "voice": "lovely_girl",
+        "emotion": "neutral",
+        "speed": 1,
+        "pitch": 4,
+        "size": 20422
+      },
+      {
+        "file": "/voice/moleTaunt/8.mp3",
+        "text": "抓不到",
+        "voice": "lovely_girl",
+        "emotion": "happy",
+        "speed": 1.05,
+        "pitch": 4,
+        "size": 21574
+      },
+      {
+        "file": "/voice/moleTaunt/9.mp3",
+        "text": "气死你",
+        "voice": "lovely_girl",
+        "emotion": "happy",
+        "speed": 1.1,
+        "pitch": 4,
+        "size": 23302
       }
     ]
   }

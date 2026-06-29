@@ -1,92 +1,137 @@
 /**
- * Generate voice pack using macOS 'say' command.
- * Outputs m4a (AAC) files into public/voice/<kind>/<index>.m4a + manifest.json.
+ * Generate voice pack using Matrix TTS (matrix_batch_text_to_audio).
  *
- * Run on macOS:
- *   node scripts/generate-voice-pack.mjs
+ * Reads single-source-of-truth from src/speech/voiceLines.ts so the
+ * generated manifest always matches the in-code lines.
  *
- * Voice mapping:
- *   - monkey voice:  Eddy (中文) — male cartoon-like, mid pitch
- *   - mole voice:    Flo (中文) — female higher pitch, suits pain/mockery
+ * Outputs mp3 files into public/voice/<kind>/<index>.mp3 + manifest.json.
  *
- * Why macOS 'say'? It uses the same Neural TTS that Chrome SpeechSynthesis
- * uses, so the output matches what the browser would speak.
+ * Run on Node 22+ (uses --experimental-strip-types for TS import):
+ *   node --experimental-strip-types scripts/generate-voice-pack.mjs
+ *
+ * Notes:
+ *   - Matrix TTS doesn't accept empty options cleanly, so we always pass
+ *     speed (default 1.0) and volume (default 8).
+ *   - Pitch is only sent if non-zero (matrix rejects pitch=0 oddly on
+ *     some voices — confirmed safe to omit).
+ *   - We batch 5 at a time to stay well under rate limits.
  */
 
-import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
-import { join } from 'path';
+import { execFileSync } from 'child_process';
+import { writeFileSync, mkdirSync, existsSync, statSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = process.cwd();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, '..');
 const OUT_DIR = join(ROOT, 'public', 'voice');
 
-// Voice assignment — chosen for kid-friendly cartoon character feel
-const VOICE_FOR = {
-  monkeyHit:  'Eddy (中文（中国大陆）)',     // excited male cheer
-  monkeyMiss: 'Eddy (中文（中国大陆）)',     // gentle encouragement
-  monkeyWin:  'Eddy (中文（中国大陆）)',     // triumphant
-  monkeyLose: 'Eddy (中文（中国大陆）)',     // soft commiserate
-  moleHit:    'Flo (中文（中国大陆）)',       // pain shriek — female higher pitch
-  moleTaunt:  'Flo (中文（中国大陆）)'        // playful mockery
-};
-
-const LINES = {
-  monkeyHit:  ['太棒啦!', '打中啦!', '真准!', '好厉害!', '再来一个!'],
-  monkeyMiss: ['再来一次!', '别灰心!', '加油加油!', '差一点!', '下次一定行!'],
-  monkeyWin:  ['通关啦!', '太厉害啦!', '满分!', '你是打字小高手!', '完美收官!'],
-  monkeyLose: ['再来一局!', '加油!', '下次一定行!', '别灰心哦~', '再来一次!'],
-  moleHit:    ['哎呦呦!', '疼啊~~~~', '啊啊啊啊!', '哎哟喂~!', '救命啊!'],
-  moleTaunt:  ['打不到我!', '哈哈!', '来呀!', '你按错啦!', '略略略~']
-};
+// Single source of truth — keep in sync with src/speech/voiceLines.ts
+const { VOICE_LINES } = await import('../src/speech/voiceLines.ts');
 
 function ensureDir(p) {
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
 }
 
-function generateOne(kind, index, text, voice) {
-  const aiffPath = join(OUT_DIR, `${kind}-${index}.aiff`);
-  const m4aPath = join(OUT_DIR, kind, `${index}.m4a`);
-
-  // say with -v voice, -o output.aiff
-  try {
-    execSync(`say -v "${voice}" -o "${aiffPath}" "${text}"`, { stdio: 'pipe' });
-  } catch (e) {
-    throw new Error(`say failed for "${text}": ${e.message}`);
-  }
-
-  // Convert to m4a (smaller, browser-supported)
-  try {
-    execSync(`afconvert "${aiffPath}" "${m4aPath}" -d aac -f m4af`, { stdio: 'pipe' });
-  } catch (e) {
-    throw new Error(`afconvert failed for ${aiffPath}: ${e.message}`);
-  }
-
-  // Cleanup intermediate
-  try { unlinkSync(aiffPath); } catch {}
-
-  return m4aPath;
+function buildMatrixRequest(kind, idx, line) {
+  const req = {
+    text: line.text,
+    voice_id: line.voice,
+    emotion: line.emotion,
+    speed: line.speed ?? 1.0,
+    volume: 8,
+  };
+  if (line.pitch && line.pitch !== 0) req.pitch = line.pitch;
+  return req;
 }
 
-function main() {
-  console.log('=== Generating voice pack (macOS say → m4a) ===');
+async function generateBatch(requests) {
+  const json = JSON.stringify({ requests });
+  const out = execFileSync('mavis', [
+    'mcp', 'call', 'matrix', 'matrix_batch_text_to_audio', json,
+  ], { stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 32 * 1024 * 1024 });
+  return JSON.parse(out.toString());
+}
+
+async function downloadFile(url, dest) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`download ${res.status}: ${url}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  writeFileSync(dest, buf);
+}
+
+function fileSize(path) {
+  return statSync(path).size;
+}
+
+async function generateKind(kind) {
+  const lines = VOICE_LINES[kind];
+  if (!lines) {
+    console.warn(`  ⚠ kind "${kind}" not in VOICE_LINES, skipping`);
+    return [];
+  }
+  const kindDir = join(OUT_DIR, kind);
+  ensureDir(kindDir);
+
+  const manifest = [];
+  const BATCH = 5;
+
+  for (let i = 0; i < lines.length; i += BATCH) {
+    const slice = lines.slice(i, i + BATCH);
+    const requests = slice.map((line, j) => buildMatrixRequest(kind, i + j, line));
+    const result = await generateBatch(requests);
+    if (!result.success_items || result.success_items.length !== slice.length) {
+      throw new Error(`Batch failed for ${kind}@${i}: ${JSON.stringify(result).slice(0, 200)}`);
+    }
+    for (let j = 0; j < slice.length; j++) {
+      const idx = i + j;
+      const item = result.success_items[j];
+      const dest = join(kindDir, `${idx}.mp3`);
+      const url = item.output_url.startsWith('http')
+        ? item.output_url
+        : join(ROOT, item.output_url);
+      await downloadFile(url, dest);
+      const size = fileSize(dest);
+      manifest.push({
+        file: `/voice/${kind}/${idx}.mp3`,
+        text: slice[j].text,
+        voice: slice[j].voice,
+        emotion: slice[j].emotion,
+        speed: slice[j].speed,
+        pitch: slice[j].pitch,
+        size,
+      });
+      const cfg = JSON.stringify({
+        voice: slice[j].voice,
+        emotion: slice[j].emotion,
+        speed: slice[j].speed,
+        pitch: slice[j].pitch,
+      });
+      console.log(`  ✓ ${kind}[${idx}] "${slice[j].text}" — ${(size / 1024).toFixed(1)}KB (${cfg})`);
+    }
+  }
+  return manifest;
+}
+
+async function main() {
+  console.log('=== Generating voice pack (Matrix TTS → mp3) ===');
+  console.log(`Output: ${OUT_DIR}`);
   ensureDir(OUT_DIR);
 
+  const kinds = Object.keys(VOICE_LINES);
+  console.log(`Kinds: ${kinds.join(', ')}`);
+  console.log(`Total lines: ${kinds.reduce((n, k) => n + VOICE_LINES[k].length, 0)}`);
+
   const manifest = {};
-
   let totalSize = 0;
-  for (const [kind, lines] of Object.entries(LINES)) {
-    const voice = VOICE_FOR[kind];
-    ensureDir(join(OUT_DIR, kind));
-    manifest[kind] = [];
+  let totalCount = 0;
 
-    for (let i = 0; i < lines.length; i++) {
-      const text = lines[i];
-      const file = generateOne(kind, i, text, voice);
-      const size = Number(execSync(`stat -f %z "${file}"`).toString().trim());
-      totalSize += size;
-      manifest[kind].push({ file: `/voice/${kind}/${i}.m4a`, text });
-      console.log(`  ✓ ${kind}[${i}] "${text}" — ${(size / 1024).toFixed(1)}KB`);
-    }
+  for (const kind of kinds) {
+    console.log(`\n[${kind}]`);
+    const items = await generateKind(kind);
+    manifest[kind] = items;
+    totalCount += items.length;
+    totalSize += items.reduce((s, x) => s + x.size, 0);
   }
 
   writeFileSync(
@@ -94,8 +139,11 @@ function main() {
     JSON.stringify({ generated: new Date().toISOString(), lines: manifest }, null, 2)
   );
 
-  console.log(`\n=== Done — total ${(totalSize / 1024).toFixed(1)}KB ===`);
-  console.log(`Manifest written to ${join(OUT_DIR, 'manifest.json')}`);
+  console.log(`\n=== Done — ${totalCount} lines, total ${(totalSize / 1024 / 1024).toFixed(2)}MB ===`);
+  console.log(`Manifest: ${join(OUT_DIR, 'manifest.json')}`);
 }
 
-main();
+main().catch(err => {
+  console.error('FAILED:', err);
+  process.exit(1);
+});

@@ -3,6 +3,10 @@ import { voice } from '@/audio/speechEngine';
 import type { VoiceLineKind } from '@/audio/speechEngine';
 
 class MockAudio {
+  static created: MockAudio[] = [];
+  static played: MockAudio[] = [];
+  static load: (manifestUrl?: string) => Promise<void>;
+
   src = '';
   preload = '';
   volume = 1;
@@ -27,8 +31,6 @@ class MockAudio {
     (this._listeners[event] ?? []).forEach(cb => cb());
   }
 }
-(MockAudio as any).created = [] as MockAudio[];
-(MockAudio as any).played = [] as MockAudio[];
 
 // Mock Audio constructor globally
 const OriginalAudio = (globalThis as any).Audio;

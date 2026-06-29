@@ -52,7 +52,9 @@ export type GameEvent =
   | { type: 'achievement:unlocked'; id: string }
   | { type: 'key:press'; key: string; hasActiveMole: boolean }
   | { type: 'game:pause' }
-  | { type: 'game:resume' };
+  | { type: 'game:resume' }
+  | { type: 'life:warning'; lives: number }
+  | { type: 'level:finale'; remainingMs: number };
 
 export interface LevelStats {
   levelId: number;

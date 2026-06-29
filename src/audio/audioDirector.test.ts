@@ -23,7 +23,17 @@ vi.mock('@/audio/audioEngine', () => {
       startBgm: vi.fn(),
       stopBgm: vi.fn(),
       pauseBgm: vi.fn(),
-      resumeBgm: vi.fn()
+      resumeBgm: vi.fn(),
+      startAmbient: vi.fn(),
+      stopAmbient: vi.fn(),
+      pauseAmbient: vi.fn(),
+      resumeAmbient: vi.fn(),
+      isBgmPlaying: vi.fn(() => true),
+      isAmbientPlaying: vi.fn(() => false),
+      setBgmTier: vi.fn(),
+      setLowLifeMode: vi.fn(),
+      isLowLifeActive: vi.fn(() => false),
+      playHeartbeat: vi.fn(),
     }
   };
 });
@@ -40,15 +50,22 @@ vi.mock('@/audio/speechEngine', () => ({
 import { createAudioDirector } from '@/audio/audioDirector';
 import { voice } from '@/audio/speechEngine';
 
+type Settings = {
+  sfxEnabled: boolean;
+  bgmEnabled: boolean;
+  voiceEnabled: boolean;
+  ambientEnabled: boolean;
+};
+
 describe('audioDirector', () => {
   let bus: ReturnType<typeof createEventBus>;
-  let settings: { get: () => { sfxEnabled: boolean; bgmEnabled: boolean; voiceEnabled: boolean } };
+  let settings: { get: () => Settings };
   let audioMock: typeof audio;
 
   beforeEach(() => {
     vi.clearAllMocks();
     bus = createEventBus();
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
     audioMock = audio as any;
   });
 
@@ -81,17 +98,19 @@ describe('audioDirector', () => {
     d.stop();
   });
 
-  it('routes combo:tier-up to audio.tierUp', () => {
+  it('routes combo:tier-up to audio.tierUp + audio.setBgmTier', () => {
     const d = createAudioDirector(bus, settings);
-    bus.emit({ type: 'combo:tier-up', tier: 2 });
+    bus.emit({ type: 'combo:tier-up', tier: 3 });
     expect(audioMock.tierUp).toHaveBeenCalled();
+    expect(audioMock.setBgmTier).toHaveBeenCalledWith(3);
     d.stop();
   });
 
-  it('routes combo:reset to audio.playComboBreak', () => {
+  it('routes combo:reset to audio.playComboBreak + BGM tier reset', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'combo:reset', from: 5 });
     expect(audioMock.playComboBreak).toHaveBeenCalled();
+    expect(audioMock.setBgmTier).toHaveBeenCalledWith(1);
     d.stop();
   });
 
@@ -102,34 +121,48 @@ describe('audioDirector', () => {
     d.stop();
   });
 
-  it('routes level:complete to audio.stopBgm + audio.win', () => {
+  it('routes level:start to audio.startBgm + audio.startAmbient + audio.playStartJingle', () => {
+    const d = createAudioDirector(bus, settings);
+    bus.emit({ type: 'level:start', levelId: 1 });
+    expect(audioMock.playStartJingle).toHaveBeenCalled();
+    expect(audioMock.startBgm).toHaveBeenCalled();
+    expect(audioMock.startAmbient).toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('routes level:complete to audio.stopBgm + audio.stopAmbient + audio.win', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'level:complete', stats: {} as any });
     expect(audioMock.stopBgm).toHaveBeenCalled();
+    expect(audioMock.stopAmbient).toHaveBeenCalled();
+    expect(audioMock.setLowLifeMode).toHaveBeenCalledWith(false);
     expect(audioMock.win).toHaveBeenCalled();
     d.stop();
   });
 
-  it('routes level:fail to audio.stopBgm + audio.lose', () => {
+  it('routes level:fail to audio.stopBgm + audio.stopAmbient + audio.lose', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
     expect(audioMock.stopBgm).toHaveBeenCalled();
+    expect(audioMock.stopAmbient).toHaveBeenCalled();
     expect(audioMock.lose).toHaveBeenCalled();
     d.stop();
   });
 
-  it('routes game:pause to audio.pauseBgm + audio.playPause', () => {
+  it('routes game:pause to audio.pauseBgm + audio.pauseAmbient + audio.playPause', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'game:pause' });
     expect(audioMock.pauseBgm).toHaveBeenCalled();
+    expect(audioMock.pauseAmbient).toHaveBeenCalled();
     expect(audioMock.playPause).toHaveBeenCalled();
     d.stop();
   });
 
-  it('routes game:resume to audio.resumeBgm + audio.playResume', () => {
+  it('routes game:resume to audio.resumeBgm + audio.resumeAmbient + audio.playResume', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'game:resume' });
     expect(audioMock.resumeBgm).toHaveBeenCalled();
+    expect(audioMock.resumeAmbient).toHaveBeenCalled();
     expect(audioMock.playResume).toHaveBeenCalled();
     d.stop();
   });
@@ -145,31 +178,51 @@ describe('audioDirector', () => {
   });
 
   it('plays wrong-key sound on key:press only when sfxEnabled', () => {
-    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'key:press', key: 'q', hasActiveMole: true });
     expect(audioMock.playWrongKey).not.toHaveBeenCalled();
     d.stop();
   });
 
-  it('does not play SFX when sfxEnabled is false (but BGM still starts)', () => {
-    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
+  it('does not play SFX when sfxEnabled is false (but BGM + ambient still start)', () => {
+    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     bus.emit({ type: 'level:start', levelId: 1 });
     expect(audioMock.hitForTier).not.toHaveBeenCalled();
     expect(audioMock.moleHit).not.toHaveBeenCalled();
     expect(audioMock.startBgm).toHaveBeenCalled();
+    expect(audioMock.startAmbient).toHaveBeenCalled();
     d.stop();
   });
 
-  it('does not start BGM when bgmEnabled is false (but SFX still plays)', () => {
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: true }) };
+  it('does not start BGM when bgmEnabled is false (but SFX + ambient still play)', () => {
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: false, voiceEnabled: true, ambientEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
     bus.emit({ type: 'level:start', levelId: 1 });
     expect(audioMock.hitForTier).toHaveBeenCalled();
     expect(audioMock.startBgm).not.toHaveBeenCalled();
+    expect(audioMock.startAmbient).toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('does not start ambient when ambientEnabled is false (but BGM still starts)', () => {
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: false }) };
+    const d = createAudioDirector(bus, settings);
+    bus.emit({ type: 'level:start', levelId: 1 });
+    expect(audioMock.startBgm).toHaveBeenCalled();
+    expect(audioMock.startAmbient).not.toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('does not resume ambient on game:resume when ambientEnabled is false', () => {
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: false }) };
+    const d = createAudioDirector(bus, settings);
+    bus.emit({ type: 'game:resume' });
+    expect(audioMock.resumeAmbient).not.toHaveBeenCalled();
+    expect(audioMock.resumeBgm).toHaveBeenCalled();
     d.stop();
   });
 
@@ -192,14 +245,28 @@ describe('audioDirector', () => {
       d.stop();
     });
 
-    it('combo:tier-up (tier >= 2) triggers monkeyHit cheer', () => {
+    it('combo:tier-up (tier 2) triggers monkeyCombo2 cheer', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'combo:tier-up', tier: 2 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyHit');
+      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo2');
       d.stop();
     });
 
-    it('combo:tier-up (tier 1) does NOT trigger monkeyHit cheer', () => {
+    it('combo:tier-up (tier 3) triggers monkeyCombo3 cheer', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'combo:tier-up', tier: 3 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo3');
+      d.stop();
+    });
+
+    it('combo:tier-up (tier 4) triggers monkeyCombo4 cheer', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'combo:tier-up', tier: 4 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo4');
+      d.stop();
+    });
+
+    it('combo:tier-up (tier 1) does NOT trigger any monkey cheer', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'combo:tier-up', tier: 1 });
       expect(voice.speak).not.toHaveBeenCalled();
@@ -235,20 +302,37 @@ describe('audioDirector', () => {
       d.stop();
     });
 
+    it('life:warning triggers voice.speak("monkeyLowLife") + audio.setLowLifeMode(true)', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'life:warning', lives: 2 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyLowLife');
+      expect(audioMock.setLowLifeMode).toHaveBeenCalledWith(true);
+      d.stop();
+    });
+
+    it('level:finale triggers voice.speak("monkeyFinale")', () => {
+      const d = createAudioDirector(bus, settings);
+      bus.emit({ type: 'level:finale', remainingMs: 8000 });
+      expect(voice.speak).toHaveBeenCalledWith('monkeyFinale');
+      d.stop();
+    });
+
     it('voice.speak is NOT called when voiceEnabled is false', () => {
-      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false }) };
+      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false, ambientEnabled: true }) };
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       bus.emit({ type: 'mole:miss', holeIndex: 0 });
       bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
       bus.emit({ type: 'level:complete', stats: {} as any });
       bus.emit({ type: 'level:fail', reason: 'lives_exhausted' });
+      bus.emit({ type: 'life:warning', lives: 1 });
+      bus.emit({ type: 'level:finale', remainingMs: 5000 });
       expect(voice.speak).not.toHaveBeenCalled();
       d.stop();
     });
 
     it('voice.speak is called even when sfxEnabled is false (voice independent of SFX)', () => {
-      settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
+      settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
       expect(audioMock.hitForTier).not.toHaveBeenCalled();
@@ -258,7 +342,7 @@ describe('audioDirector', () => {
     });
 
     it('audio.win is called even when voiceEnabled is false (SFX independent of voice)', () => {
-      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false }) };
+      settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false, ambientEnabled: true }) };
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'level:complete', stats: {} as any });
       expect(audioMock.win).toHaveBeenCalled();

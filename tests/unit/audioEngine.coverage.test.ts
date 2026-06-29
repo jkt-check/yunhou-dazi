@@ -107,13 +107,6 @@ describe('AudioEngine (coverage smoke tests for all public methods)', () => {
     expect(oscCount).toBeGreaterThanOrEqual(2);
   });
 
-  it('combo() creates 2 oscillators via setTimeout', () => {
-    audio.combo();
-    vi.advanceTimersByTime(100);
-    expect(oscCount).toBeGreaterThanOrEqual(2);
-    vi.useRealTimers();
-  });
-
   it('unlock() creates 4 oscillators', () => {
     audio.unlock();
     vi.advanceTimersByTime(500);

@@ -5,7 +5,7 @@ export function renderSettings(root: HTMLElement) {
   const s = settingsStore.get();
 
   function readValue(el: HTMLInputElement | HTMLSelectElement, key: keyof SettingsState): unknown {
-    if (key === 'sfxEnabled' || key === 'bgmEnabled' || key === 'voiceEnabled' || key === 'showVirtualKeyboard') {
+    if (key === 'sfxEnabled' || key === 'bgmEnabled' || key === 'voiceEnabled' || key === 'ambientEnabled' || key === 'showVirtualKeyboard') {
       return (el as HTMLInputElement).checked;
     }
     if (key === 'volume') return parseFloat(el.value);
@@ -39,6 +39,10 @@ export function renderSettings(root: HTMLElement) {
         <label class="setting-row">
           <span class="setting-label">猴子配音</span>
           <input type="checkbox" data-key="voiceEnabled" ${s.voiceEnabled ? 'checked' : ''} />
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">环境音 (竹林风声)</span>
+          <input type="checkbox" data-key="ambientEnabled" ${s.ambientEnabled ? 'checked' : ''} />
         </label>
         <label class="setting-row">
           <span class="setting-label">显示虚拟键盘</span>

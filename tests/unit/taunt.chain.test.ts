@@ -21,24 +21,41 @@ vi.mock('@/audio/audioEngine', () => {
       startBgm: vi.fn(),
       stopBgm: vi.fn(),
       pauseBgm: vi.fn(),
-      resumeBgm: vi.fn()
+      resumeBgm: vi.fn(),
+      startAmbient: vi.fn(),
+      stopAmbient: vi.fn(),
+      pauseAmbient: vi.fn(),
+      resumeAmbient: vi.fn(),
+      isBgmPlaying: vi.fn(() => true),
+      isAmbientPlaying: vi.fn(() => false),
+      setBgmTier: vi.fn(),
+      setLowLifeMode: vi.fn(),
+      isLowLifeActive: vi.fn(() => false),
+      playHeartbeat: vi.fn(),
     }
   };
 });
 vi.mock('@/audio/speechEngine', () => ({
-  voice: { speak: vi.fn(), cancel: vi.fn(), setEnabled: vi.fn(), isSupported: vi.fn(() => true) }
+  voice: { speak: vi.fn(), cancel: vi.fn(), setEnabled: vi.fn(), isSupported: vi.fn(() => true), load: vi.fn() }
 }));
 
 import { audio } from '@/audio/audioEngine';
 
+type Settings = {
+  sfxEnabled: boolean;
+  bgmEnabled: boolean;
+  voiceEnabled: boolean;
+  ambientEnabled: boolean;
+};
+
 describe('mole taunt SFX — full chain (regression: user reports not hearing)', () => {
   let bus: ReturnType<typeof createEventBus>;
-  let settings: { get: () => { sfxEnabled: boolean; bgmEnabled: boolean; voiceEnabled: boolean } };
+  let settings: { get: () => Settings };
 
   beforeEach(() => {
     vi.clearAllMocks();
     bus = createEventBus();
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
   });
 
   it('audioDirector.route(mole:taunt) → audio.taunt() called', () => {
@@ -49,7 +66,7 @@ describe('mole taunt SFX — full chain (regression: user reports not hearing)',
   });
 
   it('audio.taunt is called even if sfxEnabled toggles ON at emit time', () => {
-    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
     expect(audio.taunt).toHaveBeenCalled();
@@ -57,7 +74,7 @@ describe('mole taunt SFX — full chain (regression: user reports not hearing)',
   });
 
   it('audio.taunt is NOT called when sfxEnabled is false (silent path)', () => {
-    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true }) };
+    settings = { get: () => ({ sfxEnabled: false, bgmEnabled: true, voiceEnabled: true, ambientEnabled: true }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
     expect(audio.taunt).not.toHaveBeenCalled();
