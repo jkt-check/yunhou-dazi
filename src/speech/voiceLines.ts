@@ -1,3 +1,5 @@
+import { randIndex } from '@/utils/random';
+
 /**
  * Voice line kinds, one per (character, game-event) pair.
  * Single source of truth: speechEngine re-exports this type.
@@ -18,6 +20,7 @@ export type VoiceLineKind =
   | 'monkeyLose'        // monkey: level failed
   | 'monkeyLowLife'     // monkey: lives ≤ 2 — worried nudge
   | 'monkeyFinale'      // monkey: last 10s — sprint cheer
+  | 'monkeyGreeting'    // monkey: opening line at level start
   | 'moleHit'           // mole: was whacked — pain
   | 'moleTaunt';        // mole: mocking player from taunt state
 
@@ -136,6 +139,15 @@ export const VOICE_LINES: Record<VoiceLineKind, readonly VoiceLine[]> = {
     { text: '全力一击',     voice: 'cute_boy',     emotion: 'excited',    speed: 1.4  },
   ],
 
+  // ── Monkey: 开场白 (5 句池, 拉开节奏) ─────────────────────────────
+  monkeyGreeting: [
+    { text: '准备好啦?', voice: 'cute_boy',   emotion: 'excited', speed: 1.0  },
+    { text: '开始吧',    voice: 'clever_boy', emotion: 'happy',   speed: 1.0  },
+    { text: '来啦',      voice: 'cute_boy',   emotion: 'happy',   speed: 1.05 },
+    { text: '冲一冲',    voice: 'cute_boy',   emotion: 'excited', speed: 1.1  },
+    { text: '看你的啦',  voice: 'clever_boy', emotion: 'happy',   speed: 1.0  },
+  ],
+
   // ── Mole: pain (high-pitched, scared) ───────────────────────────────
   moleHit: [
     { text: '哎呦',         voice: 'lovely_girl',  emotion: 'fearful',    speed: 1.3,  pitch: 2 },
@@ -167,5 +179,9 @@ export const VOICE_LINES: Record<VoiceLineKind, readonly VoiceLine[]> = {
 
 export function pickLine(kind: VoiceLineKind): VoiceLine {
   const pool = VOICE_LINES[kind];
-  return pool[Math.floor(Math.random() * pool.length)];
+  // Regression fix (review round 1): use the project's randIndex() clamp
+  // instead of raw Math.random() — CLAUDE.md lists this as a previously fixed
+  // boundary bug. The clamp prevents a seeded RNG stub from returning the
+  // array length (out-of-bounds) when Math.random() returns the upper bound.
+  return pool[randIndex(pool.length)];
 }

@@ -4,6 +4,7 @@ import { pickLine, VOICE_LINES, type VoiceLine, type VoiceLineKind } from '@/spe
 const ALL_KINDS: VoiceLineKind[] = [
   'monkeyHit', 'monkeyMiss', 'monkeyCombo2', 'monkeyCombo3', 'monkeyCombo4',
   'monkeyWin', 'monkeyLose', 'monkeyLowLife', 'monkeyFinale',
+  'monkeyGreeting',
   'moleHit', 'moleTaunt'
 ];
 
@@ -111,6 +112,12 @@ describe('monkey voice lines', () => {
       expect(['happy', 'triumphant', 'neutral']).toContain(line.emotion);
     });
   });
+
+  it('monkeyGreeting lines use happy/excited emotion (welcoming, not anxious)', () => {
+    VOICE_LINES.monkeyGreeting.forEach(line => {
+      expect(['happy', 'excited', 'neutral']).toContain(line.emotion);
+    });
+  });
 });
 
 describe('all voice lines reference valid matrix voice ids', () => {
@@ -122,6 +129,7 @@ describe('all voice lines reference valid matrix voice ids', () => {
     const monkeyKinds: VoiceLineKind[] = [
       'monkeyHit', 'monkeyMiss', 'monkeyCombo2', 'monkeyCombo3', 'monkeyCombo4',
       'monkeyWin', 'monkeyLose', 'monkeyLowLife', 'monkeyFinale',
+      'monkeyGreeting',
     ];
     monkeyKinds.forEach(kind => {
       VOICE_LINES[kind].forEach(line => {
