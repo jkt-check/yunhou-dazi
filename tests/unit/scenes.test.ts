@@ -6,23 +6,6 @@ describe('letters scene', () => {
     expect(lettersScene.getKeysPerMole()).toBe(1);
   });
 
-  it('generates from configured pool', () => {
-    const key = lettersScene.generateKey({
-      level: 1, rng: Math.random, history: [],
-      sceneConfig: { pool: ['A', 'B'] }
-    });
-    expect(['A', 'B']).toContain(key);
-  });
-
-  it('always emits uppercase letters (regression: lowercase was mismatched with keyboard caps)', () => {
-    // Even when pool is given in lowercase, output is uppercase
-    const key = lettersScene.generateKey({
-      level: 1, rng: Math.random, history: [],
-      sceneConfig: { pool: ['a', 'b', 'c'] }
-    });
-    expect(key).toBe(key.toUpperCase());
-  });
-
   it('matches case-insensitively (caps + lowercase both work)', () => {
     expect(lettersScene.matches(['A'], 'a')).toBe(true);
     expect(lettersScene.matches(['a'], 'a')).toBe(true);
@@ -31,6 +14,13 @@ describe('letters scene', () => {
 
   it('returns difficulty multiplier 1.0', () => {
     expect(lettersScene.getDifficultyMultiplier()).toBe(1.0);
+  });
+
+  it('provides a HoleLayout with 26 positions covering A-Z', () => {
+    const layout = lettersScene.getHoleLayout();
+    expect(layout.positions).toHaveLength(26);
+    const letters = layout.positions.map(p => p.letter).sort();
+    expect(letters).toEqual('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
   });
 
   it('renderKey() draws seal badge + character without throwing', () => {
@@ -43,12 +33,10 @@ describe('letters scene', () => {
       fill: () => calls.push('fill'),
       stroke: () => calls.push('stroke'),
       fillText: (text: string) => calls.push('fillText:' + text),
-      // setters (assignment, not function)
       fillStyle: '', strokeStyle: '', lineWidth: 0,
       font: '', textAlign: '', textBaseline: ''
     };
     expect(() => lettersScene.renderKey(fakeCtx, 'A', 50, 50)).not.toThrow();
-    // Verify structure: save → fill+stroke → fillText('A') → restore
     expect(calls[0]).toBe('save');
     expect(calls).toContain('fillText:A');
     expect(calls[calls.length - 1]).toBe('restore');
