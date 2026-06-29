@@ -250,38 +250,20 @@ describe('audioDirector', () => {
       d.stop();
     });
 
-    it('combo:tier-up (tier 2) triggers monkeyCombo2 cheer', () => {
-      const d = createAudioDirector(bus, settings);
-      bus.emit({ type: 'combo:tier-up', tier: 2 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo2');
-      d.stop();
-    });
-
-    it('combo:tier-up (tier 3) triggers monkeyCombo3 cheer', () => {
+    it('combo:tier-up does NOT trigger any voice (SFX + BGM only — v2 timing)', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'combo:tier-up', tier: 3 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo3');
-      d.stop();
-    });
-
-    it('combo:tier-up (tier 4) triggers monkeyCombo4 cheer', () => {
-      const d = createAudioDirector(bus, settings);
-      bus.emit({ type: 'combo:tier-up', tier: 4 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyCombo4');
-      d.stop();
-    });
-
-    it('combo:tier-up (tier 1) does NOT trigger any monkey cheer', () => {
-      const d = createAudioDirector(bus, settings);
-      bus.emit({ type: 'combo:tier-up', tier: 1 });
       expect(voice.speak).not.toHaveBeenCalled();
+      expect(audioMock.tierUp).toHaveBeenCalled();
+      expect(audioMock.setBgmTier).toHaveBeenCalledWith(3);
       d.stop();
     });
 
-    it('mole:miss triggers voice.speak("monkeyMiss") when voiceEnabled', () => {
+    it('mole:miss does NOT trigger any voice (SFX only — v2 timing)', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:miss', holeIndex: 0 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyMiss');
+      expect(voice.speak).not.toHaveBeenCalled();
+      expect(audioMock.miss).toHaveBeenCalled();
       d.stop();
     });
 
@@ -307,10 +289,10 @@ describe('audioDirector', () => {
       d.stop();
     });
 
-    it('life:warning triggers voice.speak("monkeyLowLife") + audio.setLowLifeMode(true)', () => {
+    it('life:warning does NOT trigger any voice (heartbeat SFX only — v2 timing)', () => {
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'life:warning', lives: 2 });
-      expect(voice.speak).toHaveBeenCalledWith('monkeyLowLife');
+      expect(voice.speak).not.toHaveBeenCalled();
       expect(audioMock.setLowLifeMode).toHaveBeenCalledWith(true);
       d.stop();
     });
@@ -326,6 +308,7 @@ describe('audioDirector', () => {
       settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: false, ambientEnabled: true }) };
       const d = createAudioDirector(bus, settings);
       bus.emit({ type: 'mole:hit', mole: {} as any, responseMs: 200, tier: 1 });
+      bus.emit({ type: 'level:start', levelId: 1 });
       bus.emit({ type: 'mole:miss', holeIndex: 0 });
       bus.emit({ type: 'mole:taunt', mole: {} as any, text: 'x' });
       bus.emit({ type: 'level:complete', stats: {} as any });

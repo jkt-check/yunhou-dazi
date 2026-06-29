@@ -41,7 +41,7 @@ export function createAudioDirector(
 
   unsubs.push(bus.on('mole:miss', () => {
     if (sfxOn()) audio.miss();
-    if (voiceOn()) voice.speak('monkeyMiss');
+    // v2 timing: no monkey miss-encouragement voice (SFX miss sound is enough)
   }));
 
   unsubs.push(bus.on('mole:taunt', () => {
@@ -55,14 +55,7 @@ export function createAudioDirector(
       audio.tierUp();
       audio.setBgmTier(e.tier);  // enable more BGM tracks as tier climbs
     }
-    if (voiceOn()) {
-      // Tier-specific cheers (escalating energy)
-      const cheer =
-        e.tier === 4 ? 'monkeyCombo4' :
-        e.tier === 3 ? 'monkeyCombo3' :
-        e.tier === 2 ? 'monkeyCombo2' : null;
-      if (cheer) voice.speak(cheer);
-    }
+    // v2 timing: no per-tier cheer voice (BGM escalation carries the energy)
   }));
 
   unsubs.push(bus.on('combo:reset', () => {
@@ -129,7 +122,7 @@ export function createAudioDirector(
     if (sfxOn() && e.lives <= 2 && !audio.isLowLifeActive()) {
       audio.setLowLifeMode(true);
     }
-    if (voiceOn()) voice.speak('monkeyLowLife');
+    // v2 timing: no low-life voice warning (heartbeat SFX already signals danger)
   }));
 
   // ─── New: finale (last 10s) ───────────────────────────────────────
