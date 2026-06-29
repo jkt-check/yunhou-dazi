@@ -8,6 +8,7 @@ import { calcStars } from './rating';
 import { gameStore } from '@/store';
 import { randIndex } from '@/utils/random';
 import type { Scene } from '@/scenes/types';
+import type { HoleLayout } from '@/scenes/layout';
 
 const FALLBACK_TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
 
@@ -15,6 +16,43 @@ function pickTauntText(): string {
   // Regression fix (review round 2): same randIndex() boundary bug as
   // pickLine(). Use the project's clamped helper instead of raw Math.random().
   return FALLBACK_TAUNT_TEXTS[randIndex(FALLBACK_TAUNT_TEXTS.length)];
+}
+
+/**
+ * Intersect a level's requested letter pool with the letters the scene's
+ * layout actually exposes. Levels may declare more letters than the scene
+ * supports (e.g. a digit pool "0".."9" against the letters scene's
+ * qwertyLayout A-Z) — without intersection the spawner would never find a
+ * hole and silently emit zero moles. Returns the intersected pool plus
+ * warns once via console.warn if the intersection is empty.
+ *
+ * If `rawPool` is not an array (missing/malformed sceneConfig.pool),
+ * falls back to the full layout letter set so the level remains playable.
+ */
+export function intersectPoolWithLayout(
+  rawPool: unknown,
+  layout: HoleLayout,
+  level: LevelConfig,
+  sceneId: string
+): readonly string[] {
+  const layoutLetterSet = new Set(layout.positions.map(p => p.letter));
+  const requestedPool: readonly string[] = Array.isArray(rawPool)
+    ? (rawPool as readonly string[])
+    : Array.from(layoutLetterSet);
+
+  const levelPool = requestedPool.filter(l => layoutLetterSet.has(l));
+
+  if (levelPool.length === 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[engine] level ${level.id} (${level.name}) ` +
+      `has no letters in common with scene '${sceneId}' ` +
+      `(requested ${requestedPool.length}, scene covers ${layoutLetterSet.size}) — ` +
+      `no moles will spawn this level.`
+    );
+  }
+
+  return levelPool;
 }
 
 export interface EngineHooks {
@@ -55,24 +93,20 @@ export class GameEngine {
       starsEarned: 0
     }));
 
+    const layout = this.hooks.scene.getHoleLayout();
     const rawPool = this.hooks.level.sceneConfig.pool;
-    const levelPool: readonly string[] = Array.isArray(rawPool)
-      ? (rawPool as readonly string[])
-      : this.hooks.scene.getHoleLayout().positions.map(p => p.letter);
-
-    if (levelPool.length === 0) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[engine] level ${this.hooks.level.id} (${this.hooks.level.name}) ` +
-        `has empty pool — no moles will spawn this level.`
-      );
-    }
+    const levelPool = intersectPoolWithLayout(
+      rawPool,
+      layout,
+      this.hooks.level,
+      this.hooks.scene.id
+    );
 
     this.spawner = new Spawner({
       activeCount: this.hooks.level.moles.activeCount,
       spawnInterval: this.hooks.level.moles.spawnInterval,
       sceneId: this.hooks.scene.id,
-      layout: this.hooks.scene.getHoleLayout(),
+      layout,
       pool: levelPool
     }, (m) => {
       this.currentMoles.push(m);

@@ -16,6 +16,13 @@ import { PAPER_WARM, VERMILION, INK_MUTED, INK as INK_HEX } from './palette';
 import { RISING_MS, RETREATING_MS, TAUNT_MS } from '@/core/mole';
 import type { HoleLayout, HolePosition } from '@/scenes/layout';
 
+/** Static seal radius in CSS pixels — clamped between [12, 28] so the seal
+ *  stays readable on phones and bounded on huge monitors.
+ */
+function staticSealRadius(canvasW: number): number {
+  return Math.max(12, Math.min(28, canvasW * 0.017));
+}
+
 /**
  * Draws the always-visible seal marker for a single key position.
  * Deliberately smaller and more muted than the mole-body seal so the
@@ -29,18 +36,18 @@ function drawStaticSeal(
   y: number,
   canvasW: number
 ) {
-  const r = Math.max(18, canvasW * 0.030);
+  const r = staticSealRadius(canvasW);
   ctx.save();
   ctx.fillStyle = PAPER_WARM;
   ctx.strokeStyle = VERMILION;
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(x, y, r - 4, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, Math.max(2, r - 4), 0, Math.PI * 2); ctx.stroke();
   // Muted ink-brown letter so the static map is a passive keyboard
   // silhouette; the mole's vermilion-ringed ink letter pops over it.
   ctx.fillStyle = INK_MUTED;
-  ctx.font = 'bold 22px "JetBrains Mono", monospace';
+  ctx.font = 'bold 16px "JetBrains Mono", monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(pos.letter, x, y + 1);
   ctx.restore();
@@ -134,19 +141,21 @@ export function startRenderer(opts: RendererOpts): () => void {
     drawBackground(ctx, w, 0, h);
 
     const positions = layoutToPixels(layout, w, h);
-    const px = (i: number) => positions[i] ?? { x: 0, y: 0 };
 
     // --- Static keyboard layer: hole + seal marker at every layout position ---
     for (let i = 0; i < layout.positions.length; i++) {
-      const { x, y } = px(i);
-      drawHole(ctx, x, y);
-      drawStaticSeal(ctx, layout.positions[i], x, y, w);
+      const pos = positions[i];
+      if (!pos) continue;  // never happens — defensive parity with hit:visual
+      drawHole(ctx, pos.x, pos.y);
+      drawStaticSeal(ctx, layout.positions[i], pos.x, pos.y, w);
     }
 
     // --- Draw moles from sprite (only when atlas is loaded) ---
     if (moleAtlas && moleSpriteAnim) {
       for (const m of state.activeMoles) {
-        const { x, y } = px(m.holeIndex);
+        const pos = positions[m.holeIndex];
+        if (!pos) continue;
+        const { x, y } = pos;
         const age = now - m.appearAt;
         let progress = 1;
         if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
