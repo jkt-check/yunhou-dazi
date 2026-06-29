@@ -5,8 +5,8 @@
   "duration": 60,
   "moles": {
     "activeCount": 3,
-    "spawnInterval": [900, 1600],
-    "stayTime": 2500
+    "spawnInterval": [1000, 1800],
+    "stayTime": 6000
   },
   "sceneConfig": {
     "pool": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
