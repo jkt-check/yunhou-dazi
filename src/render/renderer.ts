@@ -1,9 +1,12 @@
 import type { GameCanvas } from './canvas';
-import { drawMonkey } from './sprites/monkey';
-import { drawMole, drawHole } from './sprites/mole';
+import { drawMoleFromSprite, drawHole } from './sprites/mole';
+import { drawMonkeyFromSprite } from './sprites/monkey';
 import { drawBackground } from './sprites/background';
 import { ParticleSystem } from './effects';
 import { MonkeyAnimations } from './monkeyAnimations';
+import type { AtlasEntry } from './spriteAnimator';
+import { SpriteAnimator } from './spriteAnimator';
+import { loadAtlases, loadSpriteManifest } from './spriteManifest';
 import type { Scene } from '@/scenes/types';
 import type { LevelConfig } from '@/types/game';
 import type { EventBus } from '@/core/eventBus';
@@ -37,7 +40,7 @@ export function startRenderer(opts: RendererOpts): () => void {
   const fullActiveMs = RISING_MS + stayTime;
   const { ctx, el } = gc;
   const particles = new ParticleSystem();
-  const monkeyAnim = new MonkeyAnimations();
+  const monkeyAnim = new MonkeyAnimations(() => performance.now());
 
   // roundRect polyfill
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -55,6 +58,25 @@ export function startRenderer(opts: RendererOpts): () => void {
     };
   }
 
+  // --- Atlas loading (async) ---
+  let monkeyAtlas: AtlasEntry | null = null;
+  let moleAtlas: AtlasEntry | null = null;
+  let monkeySpriteAnim: SpriteAnimator | null = null;
+  let moleSpriteAnim: SpriteAnimator | null = null;
+
+  loadSpriteManifest('/sprites/sprite-manifest.json')
+    .then(m => loadAtlases(m))
+    .then(({ monkey, mole }) => {
+      monkeyAtlas = monkey;
+      moleAtlas = mole;
+      monkeySpriteAnim = new SpriteAnimator(monkey, 'idle');
+      moleSpriteAnim = new SpriteAnimator(mole, 'active');
+    })
+    .catch(err => {
+      console.error('[renderer] sprite atlas load failed:', err);
+    });
+
+  // --- Event handlers ---
   const unsubs = [
     bus.on('hit:visual', (e: any) => {
       const { x, y } = getHolePos(e.mole.holeIndex, el.clientWidth, el.clientHeight);
@@ -63,15 +85,9 @@ export function startRenderer(opts: RendererOpts): () => void {
       particles.floatText(`+${e.score}`, x, y - 30, '#C44536');
       monkeyAnim.setState('hit');
     }),
-    bus.on('combo:tier-up', (_e: any) => {
-      monkeyAnim.setState('combo');
-    }),
-    bus.on('mole:taunt', (_e: any) => {
-      monkeyAnim.setState('taunt');
-    }),
-    bus.on('mole:miss', (_e: any) => {
-      monkeyAnim.setState('miss');
-    })
+    bus.on('combo:tier-up', () => monkeyAnim.setState('combo')),
+    bus.on('mole:taunt', () => monkeyAnim.setState('taunt')),
+    bus.on('mole:miss', () => monkeyAnim.setState('miss'))
   ];
 
   let rafId: number | null = null;
@@ -100,30 +116,47 @@ export function startRenderer(opts: RendererOpts): () => void {
       drawHole(ctx, x, y);
     }
 
-    for (const m of state.activeMoles) {
-      const { x, y } = getHolePos(m.holeIndex, w, h);
-      const age = now - m.appearAt;
-      let progress = 1;
-      if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
-      else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (fullActiveMs + 400)) / RETREATING_MS);
-      else if (m.state === 'hit') progress = 1;
+    // --- Draw moles from sprite (only when atlas is loaded) ---
+    if (moleAtlas && moleSpriteAnim) {
+      for (const m of state.activeMoles) {
+        const { x, y } = getHolePos(m.holeIndex, w, h);
+        const age = now - m.appearAt;
+        let progress = 1;
+        if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
+        else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (fullActiveMs + 400)) / RETREATING_MS);
+        else if (m.state === 'hit') progress = 1;
+        const yOffset = (1 - progress) * 40;
 
-      const yOffset = (1 - progress) * 40;
-      const mode = m.state === 'taunting' ? 'taunt' : 'normal';
-      drawMole(ctx, x, y + yOffset, progress, m.state === 'hit', mode);
+        const moleState = m.state === 'taunting' ? 'taunting' : m.state;
+        if (moleSpriteAnim.getState() !== moleState) moleSpriteAnim.setState(moleState);
+        moleSpriteAnim.tick(dt);
 
-      if (m.state === 'rising' || m.state === 'active') {
-        scene.renderKey(ctx, m.key, x, y - 50);
+        drawMoleFromSprite(ctx, moleAtlas, moleSpriteAnim, x, y + yOffset);
+
+        if (m.state === 'rising' || m.state === 'active') {
+          scene.renderKey(ctx, m.key, x, y - 50);
+        }
       }
+    } else {
+      // No atlas yet — skip mole drawing, background still renders.
     }
 
-    // Tick and draw particles
+    // --- Tick monkey state machine (legacy) ---
+    monkeyAnim.tick();
+
+    // --- Draw monkey from sprite (only when atlas is loaded) ---
+    if (monkeyAtlas && monkeySpriteAnim) {
+      const monkeyState = monkeyAnim.getCurrentState();
+      if (monkeySpriteAnim.getState() !== monkeyState) {
+        monkeySpriteAnim.setState(monkeyState);
+      }
+      monkeySpriteAnim.tick(dt);
+      drawMonkeyFromSprite(ctx, monkeyAtlas, monkeySpriteAnim, w * 0.18, h * 0.22);
+    }
+
+    // Tick and draw particles (unchanged)
     particles.tick(dt);
     particles.draw(ctx);
-
-    // Tick monkey animations and draw monkey
-    monkeyAnim.tick();
-    drawMonkey(ctx, w * 0.18, h * 0.22, monkeyAnim.getCurrentState(), monkeyAnim.getStateAge());
 
     rafId = requestAnimationFrame(frame);
   }
