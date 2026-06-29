@@ -2,13 +2,16 @@ import type { Mole } from '@/types/game';
 import { randInt, randIndex } from '@/utils/random';
 import { nextId } from '@/utils/id';
 import { createMole } from './mole';
-import { HOLES_TOTAL } from './grid';
+import type { HoleLayout } from '@/scenes/layout';
 
 export interface SpawnerConfig {
   activeCount: number;
   spawnInterval: [number, number];
   sceneId: string;
-  generate: () => string;
+  /** Keyboard layout defining which positions can be used. */
+  layout: HoleLayout;
+  /** Allowed letters for this level (from level.sceneConfig.pool). */
+  pool: readonly string[];
 }
 
 export class Spawner {
@@ -40,15 +43,18 @@ export class Spawner {
   }
 
   private spawnOne() {
+    const positions = this.config.layout.positions;
     const free: number[] = [];
-    for (let i = 0; i < HOLES_TOTAL; i++) {
-      if (!this.occupiedHoles.has(i)) free.push(i);
+    for (let i = 0; i < positions.length; i++) {
+      if (this.occupiedHoles.has(i)) continue;
+      if (!this.config.pool.includes(positions[i].letter)) continue;
+      free.push(i);
     }
     if (free.length === 0) return;
     const hole = free[randIndex(free.length)];
     this.onSpawn(createMole({
       holeIndex: hole,
-      key: this.config.generate(),
+      key: positions[hole].letter,
       sceneId: this.config.sceneId,
       now: this.now(),
       id: nextId('mole')
