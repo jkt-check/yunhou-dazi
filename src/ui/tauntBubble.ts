@@ -5,7 +5,7 @@ export class TauntBubble {
     this.root = root;
   }
 
-  show(text: string, x: number, y: number, _durationMs: number): void {
+  show(text: string, x: number, y: number, durationMs: number): void {
     if (!this.root) return;
     const bubble = document.createElement('div');
     bubble.className = 'taunt-bubble';
@@ -18,8 +18,9 @@ export class TauntBubble {
     bubble.appendChild(textSpan);
     this.root.appendChild(bubble);
 
-    // Auto-remove after animation completes (600ms = taunt + retreating + buffer)
-    setTimeout(() => bubble.remove(), 600);
+    // Caller-supplied lifetime — covers the taunt + retreating animation.
+    // Game page passes TAUNT_MS + RETREATING_MS + 0ms buffer (550ms).
+    setTimeout(() => bubble.remove(), durationMs);
   }
 
   destroy(): void {
