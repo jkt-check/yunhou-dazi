@@ -4,7 +4,7 @@ import { qwertyLayout } from '@/scenes/qwertyLayout';
 import type { LevelConfig } from '@/types/game';
 
 const mockLevel: LevelConfig = {
-  id: 3, scene: 'letters', name: '数字初探', duration: 60,
+  id: 3, scene: 'letters', name: '全键盘综合', duration: 60,
   moles: { activeCount: 3, spawnInterval: [800, 1500], stayTime: 4500 },
   // Pool mixes letters and digits — all are present in the new 36-key layout.
   sceneConfig: {
