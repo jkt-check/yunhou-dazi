@@ -1,8 +1,17 @@
 /**
- * Grid layout constants shared between renderer and spawner.
- * Single source of truth — change here, propagates everywhere.
+ * Convert a HoleLayout's normalized positions to pixel coordinates
+ * for the current canvas size. Pure function — call once per frame
+ * with the latest canvas dimensions.
  */
+import type { HoleLayout } from '@/scenes/layout';
 
-export const HOLES_TOTAL = 12;
-export const HOLES_COLS = 4;
-export const HOLES_ROWS = 3;
+export function layoutToPixels(
+  layout: HoleLayout,
+  w: number,
+  h: number
+): { x: number; y: number }[] {
+  return layout.positions.map(p => ({
+    x: p.xRatio * w,
+    y: p.yRatio * h
+  }));
+}
