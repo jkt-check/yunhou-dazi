@@ -309,7 +309,6 @@ export class GameEngine {
       // the win-condition type. For score-based levels the target is a score
       // value; for hits-based levels it's a hit count. The previous code always
       // compared score, which would silently misbehave for hits-based levels.
-      const win = this.hooks.level.winCondition;
       const reached = win.type === 'score'
         ? updated.score >= win.target
         : updated.hits >= win.target;
