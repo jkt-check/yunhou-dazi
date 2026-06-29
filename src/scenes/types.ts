@@ -1,3 +1,5 @@
+import type { HoleLayout } from './layout';
+
 export interface SceneContext {
   level: number;
   rng: () => number;
@@ -15,6 +17,12 @@ export interface Scene {
   getDifficultyMultiplier(): number;
   /** Optional: scene-specific taunt text. Defaults to generic pool. */
   getTauntText?(): string;
+  /**
+   * Layout describing where moles can emerge on the play field.
+   * Required — implement by returning a layout that matches the scene's
+   * character system (e.g. QWERTY for letters, pinyin keyboard for pinyin).
+   */
+  getHoleLayout(): HoleLayout;
 }
 
 export const scenes: Record<string, Scene> = {};
