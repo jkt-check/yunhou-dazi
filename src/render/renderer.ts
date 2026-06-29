@@ -12,11 +12,9 @@ import type { LevelConfig } from '@/types/game';
 import type { EventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import { layoutToPixels } from '@/core/grid';
-import { PAPER_WARM, VERMILION, INK_MUTED } from './palette';
+import { PAPER_WARM, VERMILION, INK_MUTED, INK as INK_HEX } from './palette';
+import { RISING_MS, RETREATING_MS, TAUNT_MS } from '@/core/mole';
 import type { HoleLayout, HolePosition } from '@/scenes/layout';
-
-const RISING_MS = 200;
-const RETREATING_MS = 150;
 
 /**
  * Draws the always-visible seal marker for a single key position.
@@ -100,12 +98,13 @@ export function startRenderer(opts: RendererOpts): () => void {
 
   // --- Event handlers ---
   const unsubs = [
-    bus.on('hit:visual', (e: any) => {
+    bus.on('hit:visual', (e) => {
       const positions = layoutToPixels(layout, el.clientWidth, el.clientHeight);
-      const pos = positions[e.mole.holeIndex] ?? { x: 0, y: 0 };
+      const pos = positions[e.mole.holeIndex];
+      if (!pos) return;
       const tier = gameStore.get().comboTier;
-      particles.burst(pos.x, pos.y, tier, '#2C1810');
-      particles.floatText(`+${e.score}`, pos.x, pos.y - 30, '#C44536');
+      particles.burst(pos.x, pos.y, tier, INK_HEX);
+      particles.floatText(`+${e.score}`, pos.x, pos.y - 30, VERMILION);
       monkeyAnim.setState('hit');
     }),
     bus.on('combo:tier-up', () => monkeyAnim.setState('combo')),
@@ -151,7 +150,7 @@ export function startRenderer(opts: RendererOpts): () => void {
         const age = now - m.appearAt;
         let progress = 1;
         if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);
-        else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (fullActiveMs + 400)) / RETREATING_MS);
+        else if (m.state === 'retreating') progress = Math.max(0, 1 - (age - (fullActiveMs + TAUNT_MS)) / RETREATING_MS);
         else if (m.state === 'hit') progress = 1;
         const yOffset = (1 - progress) * 40;
 

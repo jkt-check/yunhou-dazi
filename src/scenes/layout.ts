@@ -1,6 +1,7 @@
 /**
  * Position of one mole hole on the play field, normalized to canvas size.
- * Renderer multiplies x/y ratios by current canvas width/height.
+ * `layoutToPixels()` (in `@/core/grid`) multiplies x/y ratios by the current
+ * canvas width/height to produce pixel coordinates for drawing and routing.
  */
 export interface HolePosition {
   /** Stable index into a HoleLayout.positions array. */

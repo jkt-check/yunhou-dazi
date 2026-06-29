@@ -1,9 +1,12 @@
 import type { Mole, MoleState } from '@/types/game';
 import { nextId } from '@/utils/id';
 
-const RISING_MS = 200;
-const RETREATING_MS = 150;
+/** Duration of the rising phase, in milliseconds. */
+export const RISING_MS = 200;
+/** Duration of the retreating phase, in milliseconds. */
+export const RETREATING_MS = 150;
 const HIT_MS = 100;
+/** Duration of the taunting phase between active and retreating, in milliseconds. */
 export const TAUNT_MS = 400;
 
 export function createMole(opts: {

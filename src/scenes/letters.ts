@@ -14,8 +14,17 @@ export const lettersScene: Scene = {
   getKeysPerMole() { return 1; },
 
   // Reserved for future non-keyboard modes (e.g. pinyin scene).
-  // For letters scene, the mole's key is bound to its hole by spawner.
-  generateKey(_ctx: SceneContext): string { return 'A'; },
+  // For letters scene, the mole's key is bound to its hole by spawner
+  // (positions[i].letter), so this method should NOT be called. Return 'A'
+  // defensively and warn loudly if invoked — likely indicates engine regression.
+  generateKey(ctx: SceneContext): string {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[lettersScene.generateKey] called but spawner binds keys from layout. ' +
+      `level=${ctx.level} sceneConfig=${JSON.stringify(ctx.sceneConfig)}`
+    );
+    return 'A';
+  },
 
   renderKey(ctx, key, x, y) {
     ctx.save();

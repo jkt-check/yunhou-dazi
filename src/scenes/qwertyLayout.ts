@@ -10,11 +10,11 @@ const ROW_Y = [0.60, 0.72, 0.84];
 const ROW_OFFSET = [0.0, 0.5, 1.0];
 
 /** Letters per row, in left-to-right order matching a US QWERTY keyboard. */
-const ROW_LETTERS: string[][] = [
+const ROW_LETTERS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
   ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
-];
+] as const;
 
 export const qwertyLayout: HoleLayout = (() => {
   const positions: HolePosition[] = [];

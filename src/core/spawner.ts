@@ -17,6 +17,7 @@ export interface SpawnerConfig {
 export class Spawner {
   private nextSpawnMs = 0;
   private occupiedHoles = new Set<number>();
+  private _poolSet: Set<string> | null = null;
 
   constructor(
     private config: SpawnerConfig,
@@ -44,10 +45,11 @@ export class Spawner {
 
   private spawnOne() {
     const positions = this.config.layout.positions;
+    const poolSet = this.poolSet;
     const free: number[] = [];
     for (let i = 0; i < positions.length; i++) {
       if (this.occupiedHoles.has(i)) continue;
-      if (!this.config.pool.includes(positions[i].letter)) continue;
+      if (!poolSet.has(positions[i].letter)) continue;
       free.push(i);
     }
     if (free.length === 0) return;
@@ -59,5 +61,13 @@ export class Spawner {
       now: this.now(),
       id: nextId('mole')
     }));
+  }
+
+  /** Lazily-computed Set for O(1) pool membership tests. */
+  private get poolSet(): Set<string> {
+    if (!this._poolSet) {
+      this._poolSet = new Set(this.config.pool);
+    }
+    return this._poolSet;
   }
 }

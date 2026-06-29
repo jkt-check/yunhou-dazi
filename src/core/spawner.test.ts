@@ -65,17 +65,30 @@ describe('Spawner (pool-bound)', () => {
   });
 
   it('respects occupied holes', () => {
+    // 'A' is occupied; spawn must pick one of the OTHER pool entries (S or D),
+    // not A. Run multiple ticks to exercise the random selection.
+    const aIdx = layout.positions.find(p => p.letter === 'A')!.index;
+    const otherPoolLetters = ['S', 'D'];
     const { spawner, onSpawn, advance } = makeSpawner(['A', 'S', 'D']);
-    advance(1000);
-    spawner.tick([
-      {
-        id: 'x',
-        holeIndex: layout.positions.find(p => p.letter === 'A')!.index,
-        key: 'A', sceneId: 'letters', state: 'active',
-        appearAt: 0, hitAt: null
+    const seen = new Set<string>();
+    for (let i = 0; i < 30; i++) {
+      advance(60);
+      spawner.tick([
+        {
+          id: 'x',
+          holeIndex: aIdx,
+          key: 'A', sceneId: 'letters', state: 'active',
+          appearAt: 0, hitAt: null
+        }
+      ]);
+      for (const call of onSpawn.mock.calls) {
+        seen.add(call[0].key);
       }
-    ]);
-    const mole = onSpawn.mock.calls[0][0];
-    expect(mole.key).not.toBe('A');
+      onSpawn.mockClear();
+    }
+    expect(seen.has('A')).toBe(false);
+    for (const key of seen) {
+      expect(otherPoolLetters).toContain(key);
+    }
   });
 });

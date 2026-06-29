@@ -55,8 +55,18 @@ export class GameEngine {
       starsEarned: 0
     }));
 
-    const levelPool = (this.hooks.level.sceneConfig.pool as readonly string[])
-      ?? this.hooks.scene.getHoleLayout().positions.map(p => p.letter);
+    const rawPool = this.hooks.level.sceneConfig.pool;
+    const levelPool: readonly string[] = Array.isArray(rawPool)
+      ? (rawPool as readonly string[])
+      : this.hooks.scene.getHoleLayout().positions.map(p => p.letter);
+
+    if (levelPool.length === 0) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[engine] level ${this.hooks.level.id} (${this.hooks.level.name}) ` +
+        `has empty pool — no moles will spawn this level.`
+      );
+    }
 
     this.spawner = new Spawner({
       activeCount: this.hooks.level.moles.activeCount,
