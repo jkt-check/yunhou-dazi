@@ -1,26 +1,88 @@
 {
   "monkey": {
     "atlas": "/sprites/monkey.png",
-    "frameSize": [256, 256],
-    "anchor": [128, 200],
+    "frameSize": [
+      256,
+      256
+    ],
+    "anchor": [
+      128,
+      200
+    ],
     "states": {
-      "idle":  { "row": 0, "count": 4, "fps": 6,  "loop": true  },
-      "hit":   { "row": 1, "count": 4, "fps": 14, "loop": false },
-      "combo": { "row": 2, "count": 6, "fps": 10, "loop": false },
-      "taunt": { "row": 3, "count": 4, "fps": 5,  "loop": true  },
-      "miss":  { "row": 4, "count": 4, "fps": 8,  "loop": false }
+      "idle": {
+        "row": 0,
+        "count": 1,
+        "fps": 6,
+        "loop": true
+      },
+      "hit": {
+        "row": 1,
+        "count": 1,
+        "fps": 14,
+        "loop": false
+      },
+      "combo": {
+        "row": 2,
+        "count": 1,
+        "fps": 10,
+        "loop": false
+      },
+      "taunt": {
+        "row": 3,
+        "count": 1,
+        "fps": 5,
+        "loop": true
+      },
+      "miss": {
+        "row": 4,
+        "count": 1,
+        "fps": 8,
+        "loop": false
+      }
     }
   },
   "mole": {
     "atlas": "/sprites/mole.png",
-    "frameSize": [256, 256],
-    "anchor": [128, 220],
+    "frameSize": [
+      256,
+      256
+    ],
+    "anchor": [
+      128,
+      220
+    ],
     "states": {
-      "rising":     { "row": 0, "count": 3, "fps": 8,  "loop": false },
-      "active":     { "row": 1, "count": 3, "fps": 4,  "loop": true  },
-      "retreating": { "row": 2, "count": 2, "fps": 10, "loop": false },
-      "hit":        { "row": 3, "count": 3, "fps": 12, "loop": false },
-      "taunting":   { "row": 4, "count": 3, "fps": 5,  "loop": true  }
+      "rising": {
+        "row": 0,
+        "count": 1,
+        "fps": 8,
+        "loop": false
+      },
+      "active": {
+        "row": 1,
+        "count": 1,
+        "fps": 4,
+        "loop": true
+      },
+      "retreating": {
+        "row": 2,
+        "count": 1,
+        "fps": 10,
+        "loop": false
+      },
+      "hit": {
+        "row": 3,
+        "count": 1,
+        "fps": 12,
+        "loop": false
+      },
+      "taunting": {
+        "row": 4,
+        "count": 1,
+        "fps": 5,
+        "loop": true
+      }
     }
   }
 }

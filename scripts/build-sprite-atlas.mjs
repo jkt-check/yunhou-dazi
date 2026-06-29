@@ -2,6 +2,14 @@
 // Composes per-frame PNGs from out/sprites/{role}/{state}-{n}.png into
 // public/sprites/{role}.png (2048x2048), and updates sprite-manifest.json
 // `count` fields to match the actual file counts.
+//
+// Layout: each state occupies its own row in the atlas, with its frames
+// laid out left-to-right in that row. The `row` field in the manifest is
+// the source of truth for atlas placement.
+//
+// For the `mole` role we also crop the bottom 25% of each input — the AI
+// model tends to draw a hole/mound at the bottom of the frame which would
+// overlap with the renderer's own drawHole.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -14,6 +22,22 @@ const COLS = ATLAS_W / FRAME_SIZE;
 const SRC = path.resolve(`out/sprites/${ROLE}`);
 const OUT_PNG = path.resolve(`public/sprites/${ROLE}.png`);
 const MANIFEST = path.resolve(`public/sprites/sprite-manifest.json`);
+
+// Per-role image prep
+const CROP_BOTTOM_RATIO = { monkey: 0.08, mole: 0.25 };
+async function prepFrame(inputPath) {
+  const ratio = CROP_BOTTOM_RATIO[ROLE] ?? 0;
+  let pipe = sharp(inputPath);
+  if (ratio > 0) {
+    const meta = await pipe.metadata();
+    const cropH = Math.round((meta.height ?? 0) * (1 - ratio));
+    pipe = pipe.extract({ left: 0, top: 0, width: meta.width, height: cropH });
+  }
+  return pipe
+    .resize(FRAME_SIZE, FRAME_SIZE, { fit: 'contain', background: '#FFFFFF' })
+    .png()
+    .toBuffer();
+}
 
 async function listStates() {
   let files;
@@ -40,22 +64,43 @@ async function build() {
     console.error(`No frames found in ${SRC}. Expected: {state}-{n}.png`);
     process.exit(1);
   }
+
+  // Load existing manifest to honor its `row` assignments.
+  const manifestRaw = await fs.readFile(MANIFEST, 'utf-8');
+  const manifest = JSON.parse(manifestRaw);
+  if (!manifest[ROLE]) {
+    console.error(`Manifest has no role "${ROLE}"`);
+    process.exit(1);
+  }
+  const stateRows = manifest[ROLE].states;
+
   const composites = [];
   const counts = {};
+  const maxRow = Math.max(...Object.values(stateRows).map(s => s.row ?? 0));
+  const totalRows = maxRow + 1;
+
   for (const [state, frames] of states) {
     counts[state] = frames.length;
+    const specRow = stateRows[state]?.row;
+    if (specRow === undefined) {
+      console.error(`State "${state}" not in manifest — add it to public/sprites/sprite-manifest.json first.`);
+      process.exit(1);
+    }
     for (let i = 0; i < frames.length; i++) {
+      if (i >= COLS) {
+        console.error(`State "${state}" has ${frames.length} frames; max ${COLS} per row.`);
+        process.exit(1);
+      }
       const fp = path.join(SRC, frames[i].file);
-      const buf = await sharp(fp)
-        .resize(FRAME_SIZE, FRAME_SIZE, { fit: 'contain', background: '#FFFFFF' })
-        .png()
-        .toBuffer();
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      composites.push({ input: buf, left: col * FRAME_SIZE, top: row * FRAME_SIZE });
+      const buf = await prepFrame(fp);
+      composites.push({
+        input: buf,
+        left: i * FRAME_SIZE,
+        top: specRow * FRAME_SIZE
+      });
     }
   }
-  const totalRows = Math.max(1, ...composites.map(c => Math.floor(c.top / FRAME_SIZE) + 1));
+
   const atlasH = totalRows * FRAME_SIZE;
   await sharp({
     create: { width: ATLAS_W, height: atlasH, channels: 4, background: { r: 245, g: 235, b: 215, alpha: 1 } }
@@ -65,22 +110,14 @@ async function build() {
     .toFile(OUT_PNG);
   console.log(`Wrote ${OUT_PNG} (${ATLAS_W}x${atlasH}) with ${states.size} states`);
 
-  const manifestRaw = await fs.readFile(MANIFEST, 'utf-8');
-  const manifest = JSON.parse(manifestRaw);
-  if (!manifest[ROLE]) {
-    console.error(`Manifest has no role "${ROLE}"`);
-    process.exit(1);
+  // Update manifest counts (preserve row assignments)
+  for (const [state, spec] of Object.entries(stateRows)) {
+    if (counts[state] !== undefined) {
+      spec.count = counts[state];
+    }
   }
-  const sorted = Array.from(states.keys()).sort();
-  sorted.forEach((state, idx) => {
-    manifest[ROLE].states[state] = {
-      ...manifest[ROLE].states[state],
-      row: idx,
-      count: counts[state]
-    };
-  });
   await fs.writeFile(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
-  console.log(`Updated ${MANIFEST} with counts:`, counts);
+  console.log(`Updated ${MANIFEST} counts:`, counts);
 }
 
 build().catch(err => { console.error(err.message || err); process.exit(1); });
