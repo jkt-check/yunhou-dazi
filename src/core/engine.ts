@@ -55,16 +55,15 @@ export class GameEngine {
       starsEarned: 0
     }));
 
+    const levelPool = (this.hooks.level.sceneConfig.pool as readonly string[])
+      ?? this.hooks.scene.getHoleLayout().positions.map(p => p.letter);
+
     this.spawner = new Spawner({
       activeCount: this.hooks.level.moles.activeCount,
       spawnInterval: this.hooks.level.moles.spawnInterval,
       sceneId: this.hooks.scene.id,
-      generate: () => this.hooks.scene.generateKey({
-        level: this.hooks.level.id,
-        rng: Math.random,
-        history: this.currentMoles.map(m => m.key),
-        sceneConfig: this.hooks.level.sceneConfig
-      })
+      layout: this.hooks.scene.getHoleLayout(),
+      pool: levelPool
     }, (m) => {
       this.currentMoles.push(m);
       this.hooks.bus.emit({ type: 'mole:spawn', mole: m });
