@@ -36,7 +36,7 @@ Each state occupies one row, frames left to right. 8px padding inside each cell 
 - `taunt` — 4 frames @ 5 fps, loop
 - `miss` — 4 frames @ 8 fps, one-shot
 
-**Mole (13 frames, 5 rows):**
+**Mole (14 frames, 5 rows):**
 - `rising` — 3 frames @ 8 fps, one-shot
 - `active` — 3 frames @ 4 fps, loop
 - `retreating` — 2 frames @ 10 fps, one-shot
@@ -246,7 +246,7 @@ Failures throw `Error` with a readable diff. Renderer catches at boot and degrad
 
 ### `src/render/monkeyAnimations.test.ts` (rewrite / extend)
 
-- Existing 5 tests preserved.
+- Existing 6 tests preserved.
 - New: `setState('hit')` followed by ≥ 600ms (no new events) ends back in `'idle'`.
 - New: re-`setState` during transient state switches immediately with no leftover `onComplete` callback from the previous state.
 
