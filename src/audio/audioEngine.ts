@@ -621,9 +621,7 @@ class AudioEngine {
    * produced audible pumping during long low-life stretches.
    */
   playHeartbeat(): void {
-    console.log('[playHeartbeat] called, ctx:', !!this.ctx, 'sfxGain:', !!this.sfxGain, 'bgmGain:', !!this.bgmGain);
     this.play(() => {
-      console.log('[playHeartbeat fn] ctx:', !!this.ctx, 'sfxGain:', !!this.sfxGain);
       if (!this.ctx || !this.sfxGain) return;
       this.duckBgm();
       this.playHeartbeatSfx();
