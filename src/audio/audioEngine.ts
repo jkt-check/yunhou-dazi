@@ -275,14 +275,26 @@ class AudioEngine {
   // ─── SFX ────────────────────────────────────────────────────────────
 
   /**
+   * Common SFX preamble: ensure ctx + gate on sfxGain + duck BGM.
+   * Regression fix (review round 1): 13+ SFX methods previously duplicated
+   * the same 3-line opener. Centralized so future guard changes (e.g. adding
+   * a suspended-ctx check, switching duck target) only need one edit.
+   */
+  private playSfx(layers: () => void): void {
+    this.play(() => {
+      if (!this.ctx || !this.sfxGain) return;
+      this.duckBgm();
+      layers();
+    });
+  }
+
+  /**
    * Whack — wooden mallet hitting dirt.
    * Layered: noise burst (土爆) + sine sweep (重音) + triangle (回弹)
    * Higher tiers add bright partials so it feels "sharper".
    */
   hitForTier(tier: 1 | 2 | 3 | 4 = 1): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       const baseFreq = [220, 280, 360, 480][tier - 1] || 220;
       const loudnessScale = tier >= 3 ? 1.15 : 1.0;
@@ -349,9 +361,7 @@ class AudioEngine {
    * Peak envelope gain ≥ 0.4 so it cuts through BGM (regression: was 0.18).
    */
   moleHit(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: this.vary(800, 0.08),
@@ -385,9 +395,7 @@ class AudioEngine {
    * Mole sigh on miss — long descending sine + breath noise tail.
    */
   miss(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: this.vary(220, 0.05),
@@ -413,9 +421,7 @@ class AudioEngine {
    * Peak envelope gain ≥ 0.45 so it's audible above BGM (regression: was 0.25).
    */
   taunt(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: this.vary(700, 0.04),
@@ -441,9 +447,7 @@ class AudioEngine {
    * Mole spawn — bamboo tube pop (triangle rise + low rumble)
    */
   playPop(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: this.vary(800, 0.05),
@@ -467,9 +471,7 @@ class AudioEngine {
    * Wrong key — soft wood thud (短"笃")
    */
   playWrongKey(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: 240,
@@ -491,9 +493,7 @@ class AudioEngine {
    * Combo break — deflated balloon (descending triangle + hiss)
    */
   playComboBreak(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: this.vary(330, 0.05),
@@ -517,9 +517,7 @@ class AudioEngine {
    * Tier up — cascading wind chime (three ascending sine partials)
    */
   tierUp(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       const baseFreq = [880, 1100, 1320][Math.floor(Math.random() * 3)];
       [0, 50, 100].forEach((delay, i) => {
@@ -539,9 +537,7 @@ class AudioEngine {
    * Level start — guzheng flourish (4 ascending notes, each with 5th overtone)
    */
   playStartJingle(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       const notes = [523, 659, 784, 1047];
       notes.forEach((f, i) => {
@@ -569,9 +565,7 @@ class AudioEngine {
    * Pause — temple bell (long-decay sine + 5th)
    */
   playPause(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       this.playOsc({
         freq: 660,
@@ -594,9 +588,7 @@ class AudioEngine {
    * Resume — fast drum hits (3 ascending short sines)
    */
   playResume(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       [440, 660, 880].forEach((f, i) => {
         this.playOsc({
@@ -658,9 +650,7 @@ class AudioEngine {
    * Achievement unlock — cascading wind chime (5 ascending triangle notes)
    */
   unlock(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       const notes = [523, 659, 784, 1047, 1318];
       notes.forEach((f, i) => {
@@ -680,9 +670,7 @@ class AudioEngine {
    * Win fanfare — 锣 (gong) + 风铃 (chime) + 鼓点 (kick)
    */
   win(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       // 锣 — LP noise + 800Hz sine
       this.playNoise({
@@ -730,9 +718,7 @@ class AudioEngine {
    * Lose — descending minor triad + low rumble (远雷)
    */
   lose(): void {
-    this.play(() => {
-      if (!this.ctx || !this.sfxGain) return;
-      this.duckBgm();
+    this.playSfx(() => {
 
       const notes = [392, 311, 247];
       notes.forEach((f, i) => {
@@ -914,7 +900,30 @@ class AudioEngine {
         gain: 0.35,
       })),
     },
+    // Regression fix (review round 1): tier 4 was a no-op because no track
+    // existed with enabledByTier=4. Now there's a `drum` kick track that
+    // enters at tier 4 — a single low-frequency thump per loop to give
+    // reaching the top tier audible impact.
+    drum: {
+      enabledByTier: 4,
+      waveType: 'sine',
+      notes: [
+        { freq: 80,  startStep: 0,  durSteps: 2, gain: 0.55 },
+        { freq: 70,  startStep: 8,  durSteps: 2, gain: 0.55 },
+        { freq: 75,  startStep: 16, durSteps: 2, gain: 0.55 },
+        { freq: 65,  startStep: 24, durSteps: 2, gain: 0.55 },
+      ],
+    },
   };
+
+  // Module-level constants (regression fix: review round 1 — hoisted out of
+  // bgmTick to avoid re-allocating the array literal on every 60ms tick).
+  private static readonly BGM_TRACK_ORDER = ['pad', 'melody', 'bass', 'tick', 'drum'] as const;
+  private static readonly BGM_STEPS_PER_LOOP = 32;
+  // Precomputed Map<step, Note> per track — built once in startBgm(), so the
+  // per-tick note lookup is O(1) instead of an Array.find() linear scan.
+  // (Regression fix: review round 1.)
+  private bgmNotesByStep: Record<string, Map<number, NoteEvent>> = {};
 
   private bgmTick = (): void => {
     if (!this.bgmPlaying || !this.ctx || !this.bgmGain) return;
@@ -927,13 +936,15 @@ class AudioEngine {
     const elapsed = now - this.bgmStartedAt;
 
     while (this.bgmStep * this.bgmStepMs < elapsed + 100) {
-      for (const trackName of ['pad', 'melody', 'bass', 'tick']) {
+      for (const trackName of AudioEngine.BGM_TRACK_ORDER) {
         const track = this.bgmTracks[trackName];
         if (track.enabledByTier > this.bgmTier) continue;
         const trackGain = this.bgmTrackGains[trackName];
         if (!trackGain) continue;
 
-        const note = track.notes.find(n => n.startStep === this.bgmStep);
+        // O(1) lookup via precomputed map (was O(n) Array.find).
+        const noteMap = this.bgmNotesByStep[trackName];
+        const note = noteMap?.get(this.bgmStep);
         if (!note) continue;
 
         const startTime = this.ctx.currentTime + 0.005;
@@ -958,13 +969,29 @@ class AudioEngine {
           osc.start(startTime);
           osc.stop(startTime + durSec + 0.02);
           this.bgmActiveOscs.add(osc);
+          // Regression fix (review round 1): remove the oscillator from the
+          // tracking set when it naturally ends, so the set doesn't grow
+          // unbounded over a long level.
+          osc.onended = () => { this.bgmActiveOscs.delete(osc); };
         }
       }
 
       this.bgmStep++;
-      if (this.bgmStep >= 32) {
-        this.bgmStep = 0;
-        this.bgmStartedAt = now;
+      if (this.bgmStep >= AudioEngine.BGM_STEPS_PER_LOOP) {
+        // Regression fix (review round 1, verified by review round 8):
+        // the previous version reset bgmStartedAt = now at every loop
+        // boundary, causing step 0 to be re-scheduled on each 60ms tick for
+        // ~250ms after the wrap and producing audible drone-stacking (4
+        // overlapping pad instances at each 8s loop wrap). My earlier fix
+        // (`bgmStartedAt = now - (bgmStep * bgmStepMs)` with bgmStep just
+        // reset to 0) was a no-op — it still yielded bgmStartedAt = now.
+        //
+        // Correct fix: exit the while loop at wrap so step 0 isn't
+        // re-scheduled. The while loop is for "catch up missed steps", and
+        // after wrapping we've finished the loop — there are no missed
+        // steps to catch up. The next tick will start with bgmStep=0 and
+        // schedule it once, as intended.
+        break;
       }
     }
   };
@@ -984,6 +1011,11 @@ class AudioEngine {
         g.gain.value = 0;
         g.connect(this.bgmGain);
         this.bgmTrackGains[name] = g;
+        // Precompute Map<step, Note> for O(1) per-tick lookup (was O(n)
+        // Array.find). Regression fix: review round 1.
+        this.bgmNotesByStep[name] = new Map(
+          this.bgmTracks[name].notes.map(n => [n.startStep, n])
+        );
       }
       // Enable tier 1 tracks immediately
       this.applyBgmTier(1, /* instant */ true);
@@ -1034,7 +1066,13 @@ class AudioEngine {
 
   /**
    * Set BGM tier — fades enabled tracks in/out over 400ms.
-   * Tier 1 = pad+melody, 2 = +bass, 3 = +tick, 4 = +5th drum flourish.
+   * Tier 1 = pad+melody, 2 = +bass, 3 = +tick, 4 = +drum kick flourish.
+   *
+   * Regression fix (review round 1): the previous version's docstring
+   * mentioned a "5th drum flourish" but tierMap only had 4 tracks (no 5th
+   * existed), so tier 4 was a no-op. Now a 5th `drum` track is defined in
+   * BgmTrackDef with enabledByTier=4, and applyBgmTier reads enabledByTier
+   * from each track instead of duplicating the values in a tierMap literal.
    */
   setBgmTier(tier: 1 | 2 | 3 | 4): void {
     if (!this.bgmPlaying) return;
@@ -1045,13 +1083,14 @@ class AudioEngine {
   private applyBgmTier(tier: 1 | 2 | 3 | 4, instant: boolean): void {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    const tierMap: Record<string, number> = {
-      pad: 1, melody: 1, bass: 2, tick: 3,
-    };
-    for (const [name, minTier] of Object.entries(tierMap)) {
+    // Regression fix (review round 1): iterate BgmTrackDef.enabledByTier
+    // directly instead of a hardcoded tierMap literal. Adding a new track
+    // now requires only one edit (the BgmTrackDef entry) instead of three
+    // (def + tierMap + bgmTick track-order array).
+    for (const [name, track] of Object.entries(this.bgmTracks)) {
       const g = this.bgmTrackGains[name];
       if (!g) continue;
-      const target = tier >= minTier ? 1 : 0;
+      const target = tier >= track.enabledByTier ? 1 : 0;
       g.gain.cancelScheduledValues(now);
       g.gain.setValueAtTime(g.gain.value, now);
       if (instant) {

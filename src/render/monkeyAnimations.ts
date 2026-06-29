@@ -24,14 +24,16 @@ export class MonkeyAnimations {
   }
 
   extendTaunt(until: number): void {
-    if (this.state !== 'taunt') {
-      this.state = 'taunt';
-      this.stateStartedAt = this.now();
-    }
-    const remaining = until - this.now();
-    if (remaining > STATE_DURATIONS.taunt!) {
-      this.stateStartedAt = this.now() - (STATE_DURATIONS.taunt! - remaining);
-    }
+    // Regression fix (review round 6): the previous version set
+    // stateStartedAt to a FUTURE timestamp when remaining > STATE_DURATIONS.taunt,
+    // causing tick() to never auto-transition out of taunt.
+    //
+    // New behavior: align stateStartedAt so tick() auto-transitions to idle
+    // exactly at `until`. drawMonkey's animation uses stateAge % 200 (a
+    // breathing cycle) and doesn't care about absolute age, so any past or
+    // future stateStartedAt works as long as auto-transition timing is right.
+    this.state = 'taunt';
+    this.stateStartedAt = until - STATE_DURATIONS.taunt!;
   }
 
   getCurrentState(): MonkeyState {

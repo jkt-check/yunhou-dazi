@@ -21,12 +21,25 @@ describe('MonkeyAnimations', () => {
     expect(m.getStateAge()).toBeGreaterThanOrEqual(100);
   });
 
-  it('extendTaunt allows setting taunt state', () => {
+  it('extendTaunt switches to taunt state', () => {
     let t = 0;
     const m = new MonkeyAnimations(() => t);
-    m.setState('idle');
-    m.setState('taunt');
+    m.extendTaunt(t + 500);
     expect(m.getCurrentState()).toBe('taunt');
+  });
+
+  it('extendTaunt aligns auto-transition to fire at `until` (regression: was future-stateStartedAt)', () => {
+    let t = 1000;
+    const m = new MonkeyAnimations(() => t);
+    m.extendTaunt(t + 1500);  // taunt should end at t=2500
+    // Before until: stays in taunt
+    t = 2400;
+    m.tick();
+    expect(m.getCurrentState()).toBe('taunt');
+    // At/after until: auto-transitions to idle
+    t = 2500;
+    m.tick();
+    expect(m.getCurrentState()).toBe('idle');
   });
 
   it('returns to idle after transient state duration elapses via tick()', () => {

@@ -22,7 +22,7 @@
 | 渲染 | Canvas 2D (游戏) + DOM (菜单/HUD) |
 | 状态 | 自研 Store (`src/store/createStore.ts`) + middleware (persistence/sync/logger) |
 | 路由 | 自研 hash router (`src/router/router.ts`) |
-| 音效 | Web Audio API,程序化合成 (无音频文件) |
+| 音效 | Web Audio API (SFX/BGM/ambient, 程序化合成) + 预录音频文件 (TTS via HTMLAudioElement + bundled mp3, public/voice/) |
 | 持久化 | localStorage (settings/achievements);session-only (game) |
 | 测试 | Vitest + happy-dom |
 | 别名 | `@/*` → `src/*` (tsconfig + vite.config) |
@@ -135,11 +135,15 @@ npm test         # vitest run (当前 39 个测试)
 | 路由表位置 | ✅ accepted | 在 `App.ts` 而非 `router/routes.ts`,更内聚 |
 | `src/modes/classic.ts` 等 | ✅ accepted | spec 列了,实现 YAGNI |
 | `tests/e2e/` | ✅ accepted | spec 标为"可选" |
+| **Round 4**: calcStars 返回 0 for score-based levels | ✅ fixed | `calcStars(stats, winCondition)` 按 type 分支 |
+| **Round 5**: persistence hydration clobber 缺失字段 | ✅ fixed | whitelist filter 加 `parsed[k] !== undefined` 守卫 |
+| **Round 2**: audioDirector.stop() 漏调 stopBgm/stopAmbient | ✅ fixed | stop() 现在清理全部三层 (BGM/ambient/heartbeat) |
+| **Round 3**: totalHits 因 level:complete 多 +1 | ✅ fixed | reducer 增加 `event` 参数,level:complete 跳过 +1 |
 
 ## 风格约束 (给后续 AI 协作)
 
 1. **不要引入框架** (React/Vue/Svelte) — 架构明确选原生
-2. **不要引入音频文件** — 保持程序化合成
+2. **音效模块分层** — SFX/BGM/ambient 仍是程序化合成,TTS 走预录 mp3 (`public/voice/manifest.json` + `src/audio/speechEngine.ts`)
 3. **不要"通用 AI 默认"配色** — 已锁定故事书调色板,新组件用 CSS 变量或 palette.ts
 4. **场景扩展不动 core** — 通过 `Scene` 接口 + `main.ts` 注册
 5. **关卡/成就扩展不动代码** — 加 JSON 文件即可

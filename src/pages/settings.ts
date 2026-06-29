@@ -76,4 +76,12 @@ export function renderSettings(root: HTMLElement) {
       }
     });
   });
+
+  // Regression fix (review round 7): return a cleanup function for CLAUDE.md §5
+  // compliance. Currently the change listeners die with their elements via
+  // innerHTML replacement on next render, but we wire up the cleanup chain now
+  // so future additions (RAF / timers) get torn down properly.
+  return () => {
+    root.innerHTML = '';
+  };
 }

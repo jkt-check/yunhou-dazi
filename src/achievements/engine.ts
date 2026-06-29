@@ -67,16 +67,23 @@ export function getAllRules(): Rule[] {
 }
 
 /**
- * Pure reducer-style accumulator. Call on every `mole:hit` (delta = +1)
- * and on `level:complete` (no-op for totalHits since per-hit calls already
- * kept it accurate).
+ * Pure reducer-style accumulator. Call on every `mole:hit` (delta = +1) and
+ * on `level:complete` with `event: 'level:complete'` (no-op for totalHits —
+ * per-hit calls already kept it accurate).
  *
  * Fixes BUG-1 (square growth): we previously added `game.hits` (current session
  * total) on every hit, which compounded as 1+2+3+...+N.
+ *
+ * Regression fix (review round 3): the previous version unconditionally
+ * incremented totalHits by 1 on every call, so the level:complete call from
+ * the bus subscriber (game.ts:114) over-counted by 1 per completed level.
+ * Pass `event: 'level:complete'` to skip the totalHits increment; per-hit
+ * calls don't pass an event (default 'mole:hit').
  */
 export function accumulateAchievementStats(
   prev: AchievementStats,
-  game: GameState
+  game: GameState,
+  event: 'mole:hit' | 'level:complete' = 'mole:hit'
 ): AchievementStats {
   const sessionAvg = game.responseTimes.length > 0
     ? calcAverage(game.responseTimes)
@@ -84,7 +91,7 @@ export function accumulateAchievementStats(
 
   return {
     ...prev,
-    totalHits: prev.totalHits + 1,
+    totalHits: prev.totalHits + (event === 'mole:hit' ? 1 : 0),
     bestCombo: Math.max(prev.bestCombo, game.maxCombo),
     bestAvgResponseMs: sessionAvg === null
       ? prev.bestAvgResponseMs

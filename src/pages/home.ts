@@ -45,4 +45,13 @@ export function renderHome(root: HTMLElement) {
   root.querySelectorAll<HTMLAnchorElement>('a[data-locked]').forEach(a => {
     a.addEventListener('click', e => e.preventDefault());
   });
+
+  // Regression fix (review round 7): return a cleanup function so the router
+  // (App.ts) can call it on navigation. The current click listeners die with
+  // the DOM (innerHTML replacement), but CLAUDE.md §5 mandates every handler
+  // return a cleanup — and if this page later adds RAF/timers, the cleanup
+  // chain is now in place to tear them down.
+  return () => {
+    root.innerHTML = '';
+  };
 }

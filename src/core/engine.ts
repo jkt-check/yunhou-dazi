@@ -6,12 +6,15 @@ import { calcScore, calcAverage, comboTier } from './scoring';
 import { nextComboAfterMiss } from './missRule';
 import { calcStars } from './rating';
 import { gameStore } from '@/store';
+import { randIndex } from '@/utils/random';
 import type { Scene } from '@/scenes/types';
 
 const FALLBACK_TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
 
 function pickTauntText(): string {
-  return FALLBACK_TAUNT_TEXTS[Math.floor(Math.random() * FALLBACK_TAUNT_TEXTS.length)];
+  // Regression fix (review round 2): same randIndex() boundary bug as
+  // pickLine(). Use the project's clamped helper instead of raw Math.random().
+  return FALLBACK_TAUNT_TEXTS[randIndex(FALLBACK_TAUNT_TEXTS.length)];
 }
 
 export interface EngineHooks {
@@ -210,6 +213,16 @@ export class GameEngine {
     // Apply miss consequences (combo protection, lives deduction)
     if (newMissed > 0) {
       const newCombo = nextComboAfterMiss(state.combo, newMissed);
+      // Regression fix (review round 1): the previous version only emitted
+      // combo:reset when combo dropped to 0. Miss-protection (combo>=5,
+      // missCount===1) drops combo by 1, which can cross a combo-tier
+      // boundary (e.g. combo 5 tier 2 → combo 4 tier 1). The audio director
+      // listens for combo:reset to fade BGM back to tier 1, so without this
+      // fix mid-tier drops left the BGM at the higher tier. Now we emit
+      // combo:reset on any tier-cross OR zero combo.
+      const prevTier = comboTier(state.combo);
+      const newTier = comboTier(newCombo);
+      const tierDropped = newTier < prevTier;
       const comboReset = newCombo === 0 && state.combo > 0;
       gameStore.set(prev => ({
         ...prev,
@@ -219,7 +232,7 @@ export class GameEngine {
         lives: Math.max(0, prev.lives - newMissed),
         currentTaunt: null
       }));
-      if (comboReset) {
+      if (comboReset || tierDropped) {
         this.hooks.bus.emit({ type: 'combo:reset', from: state.combo });
       }
     }
@@ -249,7 +262,15 @@ export class GameEngine {
       return;
     }
     if (elapsedSec >= this.hooks.level.duration) {
-      if (updated.score >= this.hooks.level.winCondition.target) this.win();
+      // Regression fix (review round 4): compare against the right metric for
+      // the win-condition type. For score-based levels the target is a score
+      // value; for hits-based levels it's a hit count. The previous code always
+      // compared score, which would silently misbehave for hits-based levels.
+      const win = this.hooks.level.winCondition;
+      const reached = win.type === 'score'
+        ? updated.score >= win.target
+        : updated.hits >= win.target;
+      if (reached) this.win();
       else this.fail('time_up');
     }
   }
@@ -257,8 +278,8 @@ export class GameEngine {
   private win() {
     const stats = this.collectStats();
     const rating = calcStars(
-      { misses: stats.misses, maxCombo: stats.maxCombo },
-      { hits: stats.hits, target: this.hooks.level.winCondition.target }
+      { misses: stats.misses, maxCombo: stats.maxCombo, score: stats.score, hits: stats.hits },
+      this.hooks.level.winCondition
     );
     gameStore.set(prev => ({ ...prev, status: 'won', starsEarned: rating }));
     this.stop();

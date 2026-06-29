@@ -10,7 +10,17 @@ export function persistence<T>(opts: { key: string; whitelist?: (keyof T)[] }): 
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
           const filtered = opts.whitelist
-            ? Object.fromEntries(opts.whitelist.map(k => [k, parsed[k as string]]))
+            ? Object.fromEntries(
+                opts.whitelist
+                  // Skip whitelist keys that aren't in storage — otherwise
+                  // store.set would clobber the initial default with undefined.
+                  // Regression fix (review round 5): without this filter, every
+                  // user upgrading past a SettingsState shape change lost their
+                  // new field's default (e.g. ambientEnabled became undefined,
+                  // breaking audio.startAmbient gating).
+                  .filter(k => parsed[k as string] !== undefined)
+                  .map(k => [k, parsed[k as string]])
+              )
             : parsed;
           store.set(filtered as Partial<T>);
         }

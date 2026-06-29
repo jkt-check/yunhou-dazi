@@ -124,7 +124,11 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
     }
     achievementsStore.set(prev => ({
       unlocked,
-      stats: accumulateAchievementStats(prev.stats, gameState)
+      // Regression fix (review round 3): pass event type so the reducer can
+      // skip the totalHits increment on level:complete (per-hit calls already
+      // counted all hits). Without this, totalHits was inflated by 1 per
+      // completed level.
+      stats: accumulateAchievementStats(prev.stats, gameState, e.type)
     }));
     for (const id of newIds) bus.emit({ type: 'achievement:unlocked', id });
   });

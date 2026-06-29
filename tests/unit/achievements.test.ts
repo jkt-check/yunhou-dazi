@@ -84,4 +84,39 @@ describe('accumulateAchievementStats (regression: BUG-1)', () => {
     );
     expect(stats.sessionAvgResponseMs).toBe(1000);
   });
+
+  it('does NOT increment totalHits when called with event="level:complete" (regression: review round 3)', () => {
+    // Regression fix (review round 3): the bus subscriber in game.ts:114
+    // fires accumulateAchievementStats on BOTH mole:hit AND level:complete.
+    // Per-hit calls already counted all hits, so the level:complete call
+    // must NOT add another +1 — otherwise totalHits would be inflated by
+    // `levels_completed`.
+    const stats0 = baseAch.stats;
+    const stats1 = accumulateAchievementStats(stats0, { ...baseGame, hits: 5, maxCombo: 5 }, 'mole:hit');
+    expect(stats1.totalHits).toBe(1);
+    const stats2 = accumulateAchievementStats(stats1, { ...baseGame, hits: 5, maxCombo: 5 }, 'mole:hit');
+    expect(stats2.totalHits).toBe(2);
+    // level:complete call should NOT increment
+    const stats3 = accumulateAchievementStats(stats2, { ...baseGame, hits: 5, maxCombo: 5, score: 250 }, 'level:complete');
+    expect(stats3.totalHits).toBe(2);  // unchanged
+    // Default arg (mole:hit) still works
+    const stats4 = accumulateAchievementStats(stats3, { ...baseGame, hits: 5, maxCombo: 5 });
+    expect(stats4.totalHits).toBe(3);
+  });
+
+  it('still updates bestCombo/bestAvg on level:complete (only totalHits is gated by event)', () => {
+    // Even though level:complete doesn't increment totalHits, it should
+    // still update bestCombo and bestAvgResponseMs based on the final
+    // game state — otherwise the player's max combo would never be
+    // captured if their last hit was the new max.
+    const prev = { ...baseAch.stats, totalHits: 5, bestCombo: 3 };
+    const final = accumulateAchievementStats(
+      prev,
+      { ...baseGame, hits: 5, maxCombo: 7, responseTimes: [500, 600, 700, 800, 900] },
+      'level:complete'
+    );
+    expect(final.totalHits).toBe(5);          // unchanged
+    expect(final.bestCombo).toBe(7);          // updated
+    expect(final.bestAvgResponseMs).toBe(700); // updated
+  });
 });

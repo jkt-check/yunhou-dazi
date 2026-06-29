@@ -1,4 +1,5 @@
 import { type VoiceLineKind } from '@/speech/voiceLines';
+import { randIndex } from '@/utils/random';
 
 /**
  * Per-kind rate limit window. Different characters (monkey vs mole) can
@@ -14,7 +15,10 @@ export interface VoiceEngine {
   cancel(): void;
   setEnabled(enabled: boolean): void;
   isSupported(): boolean;
+  /** Eagerly load manifest + preload all audio. Kept for tests/back-compat. */
   load(manifestUrl?: string): Promise<void>;
+  /** Fetch the manifest only — audio elements are created lazily per kind. */
+  prefetchManifest(manifestUrl?: string): Promise<void>;
 }
 
 /**
@@ -30,46 +34,70 @@ type Manifest = Record<VoiceLineKind, ManifestLine[]>;
 class FileSpeechEngineImpl implements VoiceEngine {
   private enabled = true;
   private manifest: Manifest | null = null;
-  /** Pool of HTMLAudioElements per (kind, index) — reused to avoid GC churn. */
+  /** Pool of HTMLAudioElements per (kind, index) — created lazily on first speak(). */
   private pool: Partial<Record<VoiceLineKind, HTMLAudioElement[]>> = {};
   /** Currently-playing audio per kind — used by cancel() to pause cleanly. */
   private current: Partial<Record<VoiceLineKind, HTMLAudioElement>> = {};
   private lastSpeakAtByKind: Partial<Record<VoiceLineKind, number>> = {};
-  private loadPromise: Promise<void> | null = null;
+  private manifestPromise: Promise<void> | null = null;
 
   /**
-   * Load manifest + preload all audio elements. Idempotent — safe to call
-   * multiple times; subsequent calls return the cached promise.
+   * Back-compat: eagerly preload everything. Used by tests that need the
+   * pool fully populated before assertions. Production code prefers
+   * prefetchManifest() + lazy per-kind creation.
    */
   load(manifestUrl = '/voice/manifest.json'): Promise<void> {
-    if (this.loadPromise) return this.loadPromise;
-    this.loadPromise = (async () => {
+    return this.prefetchManifest(manifestUrl).then(() => this.preloadAll());
+  }
+
+  /**
+   * Fetch the manifest only. Idempotent — safe to call multiple times;
+   * subsequent calls return the cached promise.
+   */
+  prefetchManifest(manifestUrl = '/voice/manifest.json'): Promise<void> {
+    if (this.manifestPromise) return this.manifestPromise;
+    this.manifestPromise = (async () => {
       try {
         const res = await fetch(manifestUrl);
         if (!res.ok) throw new Error(`manifest fetch ${res.status}`);
         const data = await res.json();
         this.manifest = data.lines as Manifest;
-        // Preload every audio file
-        const all: Promise<void>[] = [];
-        for (const kind of Object.keys(this.manifest) as VoiceLineKind[]) {
-          this.pool[kind] = [];
-          for (let i = 0; i < this.manifest[kind].length; i++) {
-            const audio = this.createAudio(this.manifest[kind][i].file);
-            this.pool[kind]!.push(audio);
-            all.push(this.preloadAudio(audio));
-          }
-        }
-        await Promise.all(all);
       } catch (err) {
         // Suppress the benign "manifest missing" warn in tests — happy-dom
         // rejects relative fetches and would otherwise spam test output
         // (regression H4).
         if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
-          console.warn('[speechEngine] load failed, voice will be silent:', err);
+          console.warn('[speechEngine] manifest fetch failed, voice will be silent:', err);
         }
       }
     })();
-    return this.loadPromise;
+    return this.manifestPromise;
+  }
+
+  /**
+   * Lazy: build the pool for one kind on first speak(). Subsequent calls
+   * reuse the same elements via currentTime=0 reset. Saves ~88 HTTP requests
+   * + ~10MB decoded buffer on the typical session (most kinds never fire).
+   */
+  private ensurePool(kind: VoiceLineKind): void {
+    if (this.pool[kind]) return;
+    if (!this.manifest) return;
+    const entries = this.manifest[kind];
+    if (!entries) return;
+    this.pool[kind] = entries.map(e => this.createAudio(e.file));
+  }
+
+  /** Eagerly build pools for all kinds — used by load() / tests. */
+  private async preloadAll(): Promise<void> {
+    if (!this.manifest) return;
+    const all: Promise<void>[] = [];
+    for (const kind of Object.keys(this.manifest) as VoiceLineKind[]) {
+      this.ensurePool(kind);
+      for (const audio of this.pool[kind] ?? []) {
+        all.push(this.preloadAudio(audio));
+      }
+    }
+    await Promise.all(all);
   }
 
   private createAudio(src: string): HTMLAudioElement {
@@ -94,26 +122,38 @@ class FileSpeechEngineImpl implements VoiceEngine {
 
   speak(kind: VoiceLineKind): void {
     if (!this.enabled) return;
-    if (!this.manifest || !this.pool[kind]) return;  // not loaded yet → silent
+    if (!this.manifest) return;  // manifest not loaded yet → silent
+
+    // Regression fix (review round 1): lazily create the pool for this kind
+    // on first use, instead of preloading all kinds at module init. The old
+    // behavior burned ~88 HTTP requests + ~10MB decoded buffer on every
+    // page load even for users who never started a level.
+    this.ensurePool(kind);
+    const audios = this.pool[kind];
+    if (!audios || audios.length === 0) return;
 
     const now = performance.now();
     const last = this.lastSpeakAtByKind[kind] ?? 0;
     if (last > 0 && now - last < MIN_INTERVAL_MS) return;
     this.lastSpeakAtByKind[kind] = now;
 
-    const audios = this.pool[kind]!;
-    const idx = Math.floor(Math.random() * audios.length);
+    // Regression fix (review round 1): use randIndex() for the boundary clamp
+    // (CLAUDE.md '设计偏差(已收口)' table).
+    const idx = randIndex(audios.length);
     const audio = audios[idx];
 
-    // Clone (or reuse with reset) so rapid same-kind plays don't fight
-    // — each play gets its own playback instance.
-    const playback = audio.cloneNode(true) as HTMLAudioElement;
-    playback.volume = 0.85;
-    playback.play().catch(() => {
+    // Regression fix (review round 1): the previous version called cloneNode(true)
+    // per play(), which created a new element that had to re-load and re-decode
+    // the underlying mp3 — defeating the pool's stated purpose. Now we reuse
+    // the pooled element directly by resetting currentTime, which is the standard
+    // HTMLAudioElement replay pattern.
+    audio.currentTime = 0;
+    audio.volume = 0.85;
+    audio.play().catch(() => {
       // Autoplay rejected — browser needs user gesture first
       // (game.ts already resumes AudioContext on first click)
     });
-    this.current[kind] = playback;
+    this.current[kind] = audio;
   }
 
   cancel(): void {
@@ -135,12 +175,16 @@ class FileSpeechEngineImpl implements VoiceEngine {
 
 export const voice: VoiceEngine = new FileSpeechEngineImpl();
 
-// Eagerly load manifest on module init so audio is ready when first speak() fires.
-// (speak() is a no-op until load() resolves, so this is safe even on slow networks.)
+// Eagerly fetch manifest on module init so the manifest is parsed when
+// first speak() fires. Regression fix (review round 1): the previous
+// behavior also preloaded every audio file at module init (88+ HTTP
+// requests + ~10MB decoded buffer resident on every page load even for
+// users who never start a level). Audio elements are now created lazily
+// on first speak() per kind, not eagerly.
 //
 // Skip in test env (vitest sets import.meta.env.MODE = 'test') — happy-dom's
 // fetch rejects relative URLs without a base, polluting test output with
 // ERR_INVALID_URL warnings. (regression H4)
 if (typeof window !== 'undefined' && import.meta.env.MODE !== 'test') {
-  voice.load();
+  voice.prefetchManifest();
 }

@@ -12,9 +12,14 @@ export function createGameCanvas(root: HTMLElement): GameCanvas {
   root.appendChild(el);
 
   const ctx = el.getContext('2d')!;
-  const dpr = window.devicePixelRatio || 1;
 
   function resize() {
+    // Regression fix (review round 7): re-read devicePixelRatio on every
+    // resize. The previous version captured dpr once at canvas creation, so
+    // browser zoom changes or mobile rotation produced a blurry canvas because
+    // the backing buffer was sized for the original DPR but CSS pixels
+    // changed.
+    const dpr = window.devicePixelRatio || 1;
     const rect = el.getBoundingClientRect();
     el.width = rect.width * dpr;
     el.height = rect.height * dpr;

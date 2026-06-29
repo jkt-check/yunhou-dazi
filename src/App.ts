@@ -12,6 +12,9 @@ const routes = [
   { path: '/profile', handler: () => renderProfile(document.getElementById('app')!) },
   { path: '/achievements', handler: () => renderAchievements(document.getElementById('app')!) },
   { path: '/settings', handler: () => renderSettings(document.getElementById('app')!) },
+  // Wrap the home handler in a guard so renderHome's return value (a cleanup
+  // function) is preserved. router.ts (router.ts:42-44) checks for the
+  // function return and stores it as the cleanup for the next dispatch.
   { path: '*', handler: () => renderHome(document.getElementById('app')!) }
 ];
 
