@@ -110,7 +110,7 @@
 ```bash
 npm run dev      # http://localhost:5173
 npm run build    # tsc --noEmit + vite build
-npm test         # vitest run (当前 39 个测试)
+npm test         # vitest run (当前 327 个测试)
 ```
 
 ## 设计偏差(已收口)

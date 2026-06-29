@@ -10,7 +10,7 @@
 npm install
 npm run dev      # 启动开发服务器 http://localhost:5173
 npm run build    # 生产构建到 dist/
-npm test         # 跑单元测试 (39 个)
+npm test         # 跑单元测试 (327 个)
 ```
 
 ## 项目结构
