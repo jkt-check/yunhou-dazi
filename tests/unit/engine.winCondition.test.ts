@@ -4,6 +4,7 @@ import { gameStore } from '@/store/slices/game';
 import { createEventBus } from '@/core/eventBus';
 import type { LevelConfig, FailReason } from '@/types/game';
 import type { Scene } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 const baseLevel: LevelConfig = {
   id: 1, scene: 'letters', name: 'test', duration: 60,
@@ -20,7 +21,8 @@ const mockScene: Scene = {
   generateKey: () => 'A',
   renderKey: () => {},
   matches: (input, target) => input[0] === target,
-  getDifficultyMultiplier: () => 1.0
+  getDifficultyMultiplier: () => 1.0,
+  getHoleLayout: () => qwertyLayout
 };
 
 describe('GameEngine win/lose conditions', () => {

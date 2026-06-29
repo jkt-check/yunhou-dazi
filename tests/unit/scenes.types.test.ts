@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerScene, getScene, scenes } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 const fakeScene = {
   id: 'fake',
@@ -8,7 +9,8 @@ const fakeScene = {
   generateKey: () => 'x',
   renderKey: () => {},
   matches: () => true,
-  getDifficultyMultiplier: () => 1.0
+  getDifficultyMultiplier: () => 1.0,
+  getHoleLayout: () => qwertyLayout
 };
 
 describe('scene registry', () => {

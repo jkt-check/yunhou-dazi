@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Spawner } from '@/core/spawner';
 import { createMole } from '@/core/mole';
 import { gameStore } from '@/store';
+import type { HoleLayout } from '@/scenes/layout';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 beforeEach(() => {
   // Reset gameStore to a clean state between tests
@@ -14,7 +16,20 @@ beforeEach(() => {
   }));
 });
 
-describe('Spawner', () => {
+// 12-hole layout for the regression tests below (preserves old behavior of
+// "12 holes, never out of bounds").
+const twelveHoleLayout: HoleLayout = {
+  positions: Array.from({ length: 12 }, (_, i) => ({
+    index: i,
+    letter: String.fromCharCode(65 + i),  // A..L
+    row: Math.floor(i / 4),
+    col: i % 4,
+    xRatio: 0,
+    yRatio: 0
+  }))
+};
+
+describe('Spawner (legacy behaviors)', () => {
   it('does not spawn within the 200ms warmup', () => {
     let nowMs = 1000;
     const now = () => nowMs;
@@ -23,7 +38,8 @@ describe('Spawner', () => {
       activeCount: 2,
       spawnInterval: [100, 200],
       sceneId: 'letters',
-      generate: () => 'a'
+      layout: twelveHoleLayout,
+      pool: ['A', 'B']
     }, onSpawn, now);
 
     s.start();
@@ -40,20 +56,21 @@ describe('Spawner', () => {
       activeCount: 2,
       spawnInterval: [100, 200],
       sceneId: 'letters',
-      generate: () => 'a'
+      layout: twelveHoleLayout,
+      pool: ['A', 'B']
     }, onSpawn, now);
 
     s.start();
-    nowMs = 1200; // past 200ms warmup
-    s.tick(spawned);  // activeCount=0 < 2 → spawn 1
+    nowMs = 1200;
+    s.tick(spawned);
     expect(onSpawn).toHaveBeenCalledTimes(1);
 
     nowMs += 300;
-    s.tick(spawned);  // activeCount=1 < 2 → spawn 1 more
+    s.tick(spawned);
     expect(onSpawn).toHaveBeenCalledTimes(2);
 
     nowMs += 300;
-    s.tick(spawned);  // activeCount=2, NOT < 2 → no spawn
+    s.tick(spawned);
     expect(onSpawn).toHaveBeenCalledTimes(2);
   });
 
@@ -62,10 +79,11 @@ describe('Spawner', () => {
     const now = () => nowMs;
     const onSpawn = vi.fn();
     const s = new Spawner({
-      activeCount: 12,  // high cap, so only collision is the constraint
+      activeCount: 12,
       spawnInterval: [100, 200],
       sceneId: 'letters',
-      generate: () => 'a'
+      layout: twelveHoleLayout,
+      pool: twelveHoleLayout.positions.map(p => p.letter)
     }, onSpawn, now);
 
     s.start();
@@ -76,25 +94,20 @@ describe('Spawner', () => {
       const m = createMole({
         id: `seed_${i}`,
         holeIndex: i,
-        key: 'a',
+        key: twelveHoleLayout.positions[i].letter,
         sceneId: 'letters',
         now: nowMs
       });
-      // mark rising so it counts as occupied
       occupied.push(m);
     }
-    // Override the 11 occupied moles to have state 'rising' for occupancy check
-    // (createMole already sets state='rising', so we're good)
 
     s.tick(occupied);
     expect(onSpawn).toHaveBeenCalledTimes(1);
     const spawnedMole = onSpawn.mock.calls[0][0];
-    expect(spawnedMole.holeIndex).toBe(11);  // the only free hole
+    expect(spawnedMole.holeIndex).toBe(11);
   });
 
-  it('clamps hole selection to free-hole bounds (regression: rng=1.0)', () => {
-    // createRng from utils/random would return values in [0,1] but Math.random
-    // can in principle return 1.0. Spawner uses randIndex which clamps.
+  it('clamps hole selection to layout bounds (regression: rng=1.0)', () => {
     let nowMs = 1000;
     const now = () => nowMs;
     const onSpawn = vi.fn();
@@ -102,7 +115,8 @@ describe('Spawner', () => {
       activeCount: 1,
       spawnInterval: [100, 200],
       sceneId: 'letters',
-      generate: () => 'a'
+      layout: twelveHoleLayout,
+      pool: ['A']
     }, onSpawn, now);
 
     s.start();
@@ -110,7 +124,7 @@ describe('Spawner', () => {
     s.tick([]);
     const mole = onSpawn.mock.calls[0][0];
     expect(mole.holeIndex).toBeGreaterThanOrEqual(0);
-    expect(mole.holeIndex).toBeLessThan(12);  // never out-of-bounds
+    expect(mole.holeIndex).toBeLessThan(twelveHoleLayout.positions.length);
     expect(typeof mole.holeIndex).toBe('number');
     expect(Number.isFinite(mole.holeIndex)).toBe(true);
   });
@@ -123,7 +137,8 @@ describe('Spawner', () => {
       activeCount: 1,
       spawnInterval: [100, 200],
       sceneId: 'letters',
-      generate: () => 'X'
+      layout: twelveHoleLayout,
+      pool: ['L']  // Letter at index 11 is 'L'
     }, onSpawn, now);
 
     s.start();
@@ -131,10 +146,33 @@ describe('Spawner', () => {
     s.tick([]);
     const m = onSpawn.mock.calls[0][0];
     expect(m.state).toBe('rising');
-    expect(m.key).toBe('X');
+    expect(m.key).toBe('L');
     expect(m.sceneId).toBe('letters');
     expect(m.appearAt).toBe(nowMs);
     expect(m.hitAt).toBeNull();
-    expect(m.id).toMatch(/^mole_/);  // from nextId('mole')
+    expect(m.id).toMatch(/^mole_/);
+  });
+});
+
+describe('Spawner (qwerty layout integration smoke)', () => {
+  it('works against the real qwertyLayout (26 holes)', () => {
+    let nowMs = 1000;
+    const now = () => nowMs;
+    const onSpawn = vi.fn();
+    const s = new Spawner({
+      activeCount: 1,
+      spawnInterval: [100, 200],
+      sceneId: 'letters',
+      layout: qwertyLayout,
+      pool: ['F']
+    }, onSpawn, now);
+    s.start();
+    nowMs = 1200;
+    s.tick([]);
+    expect(onSpawn).toHaveBeenCalledTimes(1);
+    const m = onSpawn.mock.calls[0][0];
+    expect(m.key).toBe('F');
+    const idx = qwertyLayout.positions.findIndex(p => p.letter === 'F');
+    expect(m.holeIndex).toBe(idx);
   });
 });

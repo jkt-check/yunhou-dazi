@@ -4,6 +4,7 @@ import { createEventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import type { LevelConfig } from '@/types/game';
 import type { Scene } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 const mockLevel: LevelConfig = {
   id: 99,
@@ -24,7 +25,8 @@ const mockScene: Scene = {
   generateKey: () => 'a',
   renderKey: () => {},
   matches: (input, target) => input[0] === target,
-  getDifficultyMultiplier: () => 1.0
+  getDifficultyMultiplier: () => 1.0,
+  getHoleLayout: () => qwertyLayout
 };
 
 describe('GameEngine startup timing (regression: BGM subscription order)', () => {

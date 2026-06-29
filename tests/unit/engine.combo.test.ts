@@ -4,6 +4,7 @@ import { createEventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import type { LevelConfig } from '@/types/game';
 import type { Scene } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 const mockLevel: LevelConfig = {
   id: 99,
@@ -11,7 +12,7 @@ const mockLevel: LevelConfig = {
   name: 'test',
   duration: 60,
   moles: { activeCount: 1, spawnInterval: [100, 200], stayTime: 2200 },
-  sceneConfig: { pool: ['a', 'b'] },
+  sceneConfig: { pool: ['A'] },
   difficulty: 1,
   winCondition: { type: 'score', target: 10000 },
   loseCondition: { type: 'misses', max: 999 }
@@ -21,10 +22,12 @@ const mockScene: Scene = {
   id: 'letters',
   name: 'letters',
   getKeysPerMole: () => 1,
-  generateKey: () => 'a',
+  generateKey: () => 'A',
   renderKey: () => {},
-  matches: (input, target) => input[0] === target,
-  getDifficultyMultiplier: () => 1.0
+  matches: (input, target) =>
+    input[0]?.toLowerCase() === target.toLowerCase(),
+  getDifficultyMultiplier: () => 1.0,
+  getHoleLayout: () => qwertyLayout
 };
 
 function waitForMoleSpawn(bus: ReturnType<typeof createEventBus>, timeoutMs = 2000): Promise<string> {

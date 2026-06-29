@@ -11,20 +11,37 @@ import type { Scene } from '@/scenes/types';
 import type { LevelConfig } from '@/types/game';
 import type { EventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
-import { HOLES_TOTAL, HOLES_COLS, HOLES_ROWS } from '@/core/grid';
+import { layoutToPixels } from '@/core/grid';
+import { PAPER_WARM, VERMILION } from './palette';
+import type { HoleLayout, HolePosition } from '@/scenes/layout';
 
 const RISING_MS = 200;
 const RETREATING_MS = 150;
 
-function getHolePos(index: number, w: number, h: number): { x: number; y: number } {
-  const col = index % HOLES_COLS;
-  const row = Math.floor(index / HOLES_COLS);
-  const cellW = w / (HOLES_COLS + 1);
-  const cellH = (h * 0.45) / (HOLES_ROWS + 1);
-  return {
-    x: cellW * (col + 1),
-    y: h * 0.58 + cellH * row
-  };
+/**
+ * Draws the always-visible seal marker for a single key position.
+ * Visually consistent with the mole-body seal but smaller and at ground level.
+ */
+function drawStaticSeal(
+  ctx: CanvasRenderingContext2D,
+  pos: HolePosition,
+  x: number,
+  y: number,
+  canvasW: number
+) {
+  const r = Math.max(18, canvasW * 0.030);
+  ctx.save();
+  ctx.fillStyle = PAPER_WARM;
+  ctx.strokeStyle = VERMILION;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(x, y, r - 4, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = VERMILION;
+  ctx.font = 'bold 22px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(pos.letter, x, y + 1);
+  ctx.restore();
 }
 
 export interface RendererOpts {
@@ -32,10 +49,11 @@ export interface RendererOpts {
   scene: Scene;
   level: LevelConfig;
   bus: EventBus;
+  layout: HoleLayout;
 }
 
 export function startRenderer(opts: RendererOpts): () => void {
-  const { canvas: gc, scene, level, bus } = opts;
+  const { canvas: gc, scene, level, bus, layout } = opts;
   const stayTime = level.moles.stayTime;
   const fullActiveMs = RISING_MS + stayTime;
   const { ctx, el } = gc;
@@ -79,10 +97,11 @@ export function startRenderer(opts: RendererOpts): () => void {
   // --- Event handlers ---
   const unsubs = [
     bus.on('hit:visual', (e: any) => {
-      const { x, y } = getHolePos(e.mole.holeIndex, el.clientWidth, el.clientHeight);
+      const positions = layoutToPixels(layout, el.clientWidth, el.clientHeight);
+      const pos = positions[e.mole.holeIndex] ?? { x: 0, y: 0 };
       const tier = gameStore.get().comboTier;
-      particles.burst(x, y, tier, '#2C1810');
-      particles.floatText(`+${e.score}`, x, y - 30, '#C44536');
+      particles.burst(pos.x, pos.y, tier, '#2C1810');
+      particles.floatText(`+${e.score}`, pos.x, pos.y - 30, '#C44536');
       monkeyAnim.setState('hit');
     }),
     bus.on('combo:tier-up', () => monkeyAnim.setState('combo')),
@@ -111,15 +130,20 @@ export function startRenderer(opts: RendererOpts): () => void {
 
     drawBackground(ctx, w, 0, h);
 
-    for (let i = 0; i < HOLES_TOTAL; i++) {
-      const { x, y } = getHolePos(i, w, h);
+    const positions = layoutToPixels(layout, w, h);
+    const px = (i: number) => positions[i] ?? { x: 0, y: 0 };
+
+    // --- Static keyboard layer: hole + seal marker at every layout position ---
+    for (let i = 0; i < layout.positions.length; i++) {
+      const { x, y } = px(i);
       drawHole(ctx, x, y);
+      drawStaticSeal(ctx, layout.positions[i], x, y, w);
     }
 
     // --- Draw moles from sprite (only when atlas is loaded) ---
     if (moleAtlas && moleSpriteAnim) {
       for (const m of state.activeMoles) {
-        const { x, y } = getHolePos(m.holeIndex, w, h);
+        const { x, y } = px(m.holeIndex);
         const age = now - m.appearAt;
         let progress = 1;
         if (m.state === 'rising') progress = Math.min(1, age / RISING_MS);

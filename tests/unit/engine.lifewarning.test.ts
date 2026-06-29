@@ -4,6 +4,7 @@ import { createEventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import type { LevelConfig } from '@/types/game';
 import type { Scene } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 /**
  * Regression B1: life:warning event was one-shot. Once lives dropped ≤ 2 and
@@ -34,7 +35,8 @@ describe('GameEngine life:warning re-fires after recovery (regression B1)', () =
     generateKey: () => 'a',
     renderKey: () => {},
     matches: (input, target) => input[0] === target,
-    getDifficultyMultiplier: () => 1.0
+    getDifficultyMultiplier: () => 1.0,
+    getHoleLayout: () => qwertyLayout
   };
 
   beforeEach(() => {

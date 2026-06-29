@@ -5,6 +5,7 @@ import { gameStore } from '@/store';
 import { TAUNT_MS } from '@/core/mole';
 import type { LevelConfig } from '@/types/game';
 import type { Scene } from '@/scenes/types';
+import { qwertyLayout } from '@/scenes/qwertyLayout';
 
 const mockLevel: LevelConfig = {
   id: 99, scene: 'letters', name: 'test', duration: 60,
@@ -21,7 +22,8 @@ const mockScene: Scene = {
   generateKey: () => 'a',
   renderKey: () => {},
   matches: (input, target) => input[0] === target,
-  getDifficultyMultiplier: () => 1.0
+  getDifficultyMultiplier: () => 1.0,
+  getHoleLayout: () => qwertyLayout
 };
 
 describe('GameEngine taunt flow', () => {
