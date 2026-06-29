@@ -8,3 +8,5 @@ dist/
 coverage/
 test-results/        # Playwright e2e artifacts
 playwright-report/   # Playwright HTML report
+.superpowers/        # brainstorming visual-companion mockups
+out/                 # AI image generation output (mmx)
