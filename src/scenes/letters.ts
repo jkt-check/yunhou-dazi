@@ -1,7 +1,7 @@
 import type { Scene, SceneContext } from './types';
 import { qwertyLayout } from './qwertyLayout';
 import { randIndex } from '@/utils/random';
-import { VERMILION, PAPER_WARM } from '@/render/palette';
+import { VERMILION, PAPER_WARM, INK } from '@/render/palette';
 
 const TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
 
@@ -19,26 +19,31 @@ export const lettersScene: Scene = {
 
   renderKey(ctx, key, x, y) {
     ctx.save();
-    // Mole-body seal badge, drawn larger than the static key marker.
+    // Mole-body seal badge — high-contrast active letter.
+    // Static keyboard markers are 22px vermilion-on-cream (background map).
+    // Mole seal is intentionally larger + ink-letter so the active target
+    // pops out from the keyboard map below.
     ctx.fillStyle = PAPER_WARM;
     ctx.strokeStyle = VERMILION;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.arc(x, y, 26, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.strokeStyle = VERMILION;
-    ctx.lineWidth = 1;
+    // Inner ink ring — frames the letter and contrasts the outer vermilion.
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(x, y, 17, 0, Math.PI * 2);
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.font = 'bold 28px "JetBrains Mono", monospace';
+    // Heavy ink character — reads as "this is the key to hit now".
+    ctx.font = 'bold 34px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = VERMILION;
-    ctx.fillText(key, x, y + 1);
+    ctx.fillStyle = INK;
+    ctx.fillText(key, x, y + 2);
     ctx.restore();
   },
 

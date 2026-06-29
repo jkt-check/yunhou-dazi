@@ -12,7 +12,7 @@ import type { LevelConfig } from '@/types/game';
 import type { EventBus } from '@/core/eventBus';
 import { gameStore } from '@/store';
 import { layoutToPixels } from '@/core/grid';
-import { PAPER_WARM, VERMILION } from './palette';
+import { PAPER_WARM, VERMILION, INK_MUTED } from './palette';
 import type { HoleLayout, HolePosition } from '@/scenes/layout';
 
 const RISING_MS = 200;
@@ -20,7 +20,9 @@ const RETREATING_MS = 150;
 
 /**
  * Draws the always-visible seal marker for a single key position.
- * Visually consistent with the mole-body seal but smaller and at ground level.
+ * Deliberately smaller and more muted than the mole-body seal so the
+ * active letter (drawn on the mole above) reads as the primary target
+ * and the keyboard map recedes as background context.
  */
 function drawStaticSeal(
   ctx: CanvasRenderingContext2D,
@@ -37,7 +39,9 @@ function drawStaticSeal(
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(x, y, r - 4, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = VERMILION;
+  // Muted ink-brown letter so the static map is a passive keyboard
+  // silhouette; the mole's vermilion-ringed ink letter pops over it.
+  ctx.fillStyle = INK_MUTED;
   ctx.font = 'bold 22px "JetBrains Mono", monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(pos.letter, x, y + 1);
