@@ -11,12 +11,16 @@ export interface Scene {
   id: string;
   name: string;
   getKeysPerMole(): number;
-  generateKey(ctx: SceneContext): string;
+  /** Optional: per-spawn key picker. Most keyboard-driven scenes get keys from
+   *  their HoleLayout (positions[i].letter), so this is unused there. Scenes
+   *  with non-keyboard spawning (e.g. random vocabulary) can override it. */
+  generateKey?(ctx: SceneContext): string;
   renderKey(ctx: CanvasRenderingContext2D, key: string, x: number, y: number): void;
   matches(input: string[], target: string): boolean;
   getDifficultyMultiplier(): number;
-  /** Optional: scene-specific taunt text. Defaults to generic pool. */
-  getTauntText?(): string;
+  /** Scene-specific taunt text. Required so each scene owns its copy — the
+   *  engine never falls back to a generic pool (avoids cross-scene bleed). */
+  getTauntText(): string;
   /**
    * Layout describing where moles can emerge on the play field.
    * Required — implement by returning a layout that matches the scene's

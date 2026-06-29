@@ -36,7 +36,8 @@ describe('GameEngine life:warning re-fires after recovery (regression B1)', () =
     renderKey: () => {},
     matches: (input, target) => input[0] === target,
     getDifficultyMultiplier: () => 1.0,
-    getHoleLayout: () => qwertyLayout
+    getHoleLayout: () => qwertyLayout,
+    getTauntText: () => '~'
   };
 
   beforeEach(() => {

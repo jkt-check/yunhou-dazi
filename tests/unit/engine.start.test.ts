@@ -26,7 +26,8 @@ const mockScene: Scene = {
   renderKey: () => {},
   matches: (input, target) => input[0] === target,
   getDifficultyMultiplier: () => 1.0,
-  getHoleLayout: () => qwertyLayout
+  getHoleLayout: () => qwertyLayout,
+  getTauntText: () => '~'
 };
 
 describe('GameEngine startup timing (regression: BGM subscription order)', () => {

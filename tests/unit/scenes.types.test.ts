@@ -10,7 +10,8 @@ const fakeScene = {
   renderKey: () => {},
   matches: () => true,
   getDifficultyMultiplier: () => 1.0,
-  getHoleLayout: () => qwertyLayout
+  getHoleLayout: () => qwertyLayout,
+  getTauntText: () => '~'
 };
 
 describe('scene registry', () => {

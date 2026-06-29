@@ -27,7 +27,8 @@ const mockScene: Scene = {
   matches: (input, target) =>
     input[0]?.toLowerCase() === target.toLowerCase(),
   getDifficultyMultiplier: () => 1.0,
-  getHoleLayout: () => qwertyLayout
+  getHoleLayout: () => qwertyLayout,
+  getTauntText: () => '~'
 };
 
 function waitForMoleSpawn(bus: ReturnType<typeof createEventBus>, timeoutMs = 2000): Promise<string> {

@@ -1,8 +1,11 @@
-import type { Scene, SceneContext } from './types';
+import type { Scene } from './types';
 import { qwertyLayout } from './qwertyLayout';
 import { randIndex } from '@/utils/random';
 import { VERMILION, PAPER_WARM, INK } from '@/render/palette';
 
+// Taunt copy owned by the letters scene. Each scene is free to define its
+// own list — the engine now requires `getTauntText()` so cross-scene bleed
+// is impossible (engine no longer ships a generic fallback).
 const TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
 
 export const lettersScene: Scene = {
@@ -11,20 +14,7 @@ export const lettersScene: Scene = {
 
   getHoleLayout() { return qwertyLayout; },
 
-  getKeysPerMole() { return 1; },
-
-  // Reserved for future non-keyboard modes (e.g. pinyin scene).
-  // For letters scene, the mole's key is bound to its hole by spawner
-  // (positions[i].letter), so this method should NOT be called. Return 'A'
-  // defensively and warn loudly if invoked — likely indicates engine regression.
-  generateKey(ctx: SceneContext): string {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[lettersScene.generateKey] called but spawner binds keys from layout. ' +
-      `level=${ctx.level} sceneConfig=${JSON.stringify(ctx.sceneConfig)}`
-    );
-    return 'A';
-  },
+  getKeysPerMole() { return 1 },
 
   renderKey(ctx, key, x, y) {
     ctx.save();
