@@ -19,8 +19,12 @@ export interface HolePosition {
 
 /**
  * An ordered set of HolePositions defining a scene's keyboard map.
- * Order matters: spawner uses position.index as the stable hole id,
- * which becomes Mole.holeIndex.
+ *
+ * Invariant: position.index values form a dense 0..N-1 sequence where
+ * index === positions.indexOf(position). The renderer, spawner, and
+ * engine all rely on this — index becomes Mole.holeIndex, which
+ * drives inputController lookup. Future scene layouts (pinyin etc.)
+ * must preserve this contract.
  */
 export interface HoleLayout {
   positions: HolePosition[];
