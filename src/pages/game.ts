@@ -1,6 +1,6 @@
 import type { RouteContext } from '@/router/router';
 import { createEventBus } from '@/core/eventBus';
-import { GameEngine } from '@/core/engine';
+import { GameEngine, intersectPoolWithLayout } from '@/core/engine';
 import { setupInput } from '@/core/inputController';
 import { getLevel } from '@/core/level';
 import { getScene } from '@/scenes/types';
@@ -52,9 +52,16 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const tauntBubble = new TauntBubble();
   tauntBubble.mount(canvasMount);
   const layout = scene.getHoleLayout();
-  const renderer = startRenderer({ canvas: gameCanvas, scene, level, bus, layout });
+  // Intersect level's pool against scene's layout letters once — used by
+  // both the renderer (to skip unreachable static seals) and the engine's
+  // spawner. Computing here avoids the engine being on the critical path
+  // before the renderer mounts.
+  const levelPool = intersectPoolWithLayout(
+    level.sceneConfig.pool, layout, level, scene.id
+  );
+  const renderer = startRenderer({ canvas: gameCanvas, scene, level, bus, layout, pool: levelPool });
 
-  const engine = new GameEngine({ scene, bus, level });
+  const engine = new GameEngine({ scene, bus, level, pool: levelPool });
   const input = vkbMount
     ? setupInput(engine, vkbMount)
     : { unbind: () => {}, unsub: () => {} };

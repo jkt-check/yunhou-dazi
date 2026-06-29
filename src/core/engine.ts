@@ -6,17 +6,8 @@ import { calcScore, calcAverage, comboTier } from './scoring';
 import { nextComboAfterMiss } from './missRule';
 import { calcStars } from './rating';
 import { gameStore } from '@/store';
-import { randIndex } from '@/utils/random';
 import type { Scene } from '@/scenes/types';
 import type { HoleLayout } from '@/scenes/layout';
-
-const FALLBACK_TAUNT_TEXTS = ['嘿嘿~', '瞄~', '差一点~', '再来呀~', '哎?没中~'];
-
-function pickTauntText(): string {
-  // Regression fix (review round 2): same randIndex() boundary bug as
-  // pickLine(). Use the project's clamped helper instead of raw Math.random().
-  return FALLBACK_TAUNT_TEXTS[randIndex(FALLBACK_TAUNT_TEXTS.length)];
-}
 
 /**
  * Intersect a level's requested letter pool with the letters the scene's
@@ -59,6 +50,10 @@ export interface EngineHooks {
   scene: Scene;
   bus: EventBus;
   level: LevelConfig;
+  /** Optional pre-intersected pool (letters ∩ scene layout). When provided
+   *  by the caller (e.g. pages/game.ts to share with the renderer), the
+   *  engine reuses it instead of calling `intersectPoolWithLayout` again. */
+  pool?: readonly string[];
 }
 
 export class GameEngine {
@@ -94,9 +89,8 @@ export class GameEngine {
     }));
 
     const layout = this.hooks.scene.getHoleLayout();
-    const rawPool = this.hooks.level.sceneConfig.pool;
-    const levelPool = intersectPoolWithLayout(
-      rawPool,
+    const levelPool = this.hooks.pool ?? intersectPoolWithLayout(
+      this.hooks.level.sceneConfig.pool,
       layout,
       this.hooks.level,
       this.hooks.scene.id
@@ -228,9 +222,7 @@ export class GameEngine {
 
       // Detect transition INTO taunting (mole timed out from active window)
       if (before === 'active' && m.state === 'taunting') {
-        const text = this.hooks.scene.getTauntText
-          ? this.hooks.scene.getTauntText()
-          : pickTauntText();
+        const text = this.hooks.scene.getTauntText();
         this.hooks.bus.emit({ type: 'mole:taunt', mole: m, text });
         gameStore.set(prev => ({
           ...prev,

@@ -16,11 +16,14 @@ import { PAPER_WARM, VERMILION, INK_MUTED, INK as INK_HEX } from './palette';
 import { RISING_MS, RETREATING_MS, TAUNT_MS } from '@/core/mole';
 import type { HoleLayout, HolePosition } from '@/scenes/layout';
 
-/** Static seal radius in CSS pixels — clamped between [12, 28] so the seal
- *  stays readable on phones and bounded on huge monitors.
+/** Static seal radius in CSS pixels — clamped between [12, 25] so the seal
+ *  stays readable on phones, never overflows the hole on huge monitors, and
+ *  stays visibly smaller than the mole-body seal (hardcoded at 26 in
+ *  scenes/letters.ts:renderKey) so the active target pops out from the
+ *  keyboard map below.
  */
 function staticSealRadius(canvasW: number): number {
-  return Math.max(12, Math.min(28, canvasW * 0.017));
+  return Math.max(12, Math.min(25, canvasW * 0.017));
 }
 
 /**
@@ -59,15 +62,37 @@ export interface RendererOpts {
   level: LevelConfig;
   bus: EventBus;
   layout: HoleLayout;
+  /** Letters valid for this level (engine's intersected pool). Used to dim
+   *  static seals whose letter can't appear in this level. */
+  pool: readonly string[];
 }
 
 export function startRenderer(opts: RendererOpts): () => void {
-  const { canvas: gc, scene, level, bus, layout } = opts;
+  const { canvas: gc, scene, level, bus, layout, pool } = opts;
   const stayTime = level.moles.stayTime;
   const fullActiveMs = RISING_MS + stayTime;
   const { ctx, el } = gc;
   const particles = new ParticleSystem();
   const monkeyAnim = new MonkeyAnimations(() => performance.now());
+
+  // Pre-compute pool membership once — used to skip static seals whose letter
+  // isn't in this level's pool (so L1/L2 don't render unreachable digit seals
+  // from row 0). Avoids per-frame Set construction.
+  const poolSet: ReadonlySet<string> = new Set(pool);
+
+  // Cached pixel positions — only depend on layout + canvas size, so we
+  // recompute on resize instead of every frame (was 60Hz × 36-object alloc).
+  let cachedPositions: { x: number; y: number }[] = [];
+  let cachedW = -1;
+  let cachedH = -1;
+  function getPositions(w: number, h: number): { x: number; y: number }[] {
+    if (w !== cachedW || h !== cachedH) {
+      cachedPositions = layoutToPixels(layout, w, h);
+      cachedW = w;
+      cachedH = h;
+    }
+    return cachedPositions;
+  }
 
   // roundRect polyfill
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -106,7 +131,7 @@ export function startRenderer(opts: RendererOpts): () => void {
   // --- Event handlers ---
   const unsubs = [
     bus.on('hit:visual', (e) => {
-      const positions = layoutToPixels(layout, el.clientWidth, el.clientHeight);
+      const positions = getPositions(el.clientWidth, el.clientHeight);
       const pos = positions[e.mole.holeIndex];
       if (!pos) return;
       const tier = gameStore.get().comboTier;
@@ -140,14 +165,19 @@ export function startRenderer(opts: RendererOpts): () => void {
 
     drawBackground(ctx, w, 0, h);
 
-    const positions = layoutToPixels(layout, w, h);
+    const positions = getPositions(w, h);
 
-    // --- Static keyboard layer: hole + seal marker at every layout position ---
+    // --- Static keyboard layer: hole at every layout position, seal only on
+    //     positions whose letter is in this level's pool. Letters outside the
+    //     pool (e.g. row-0 digits on L1/L2) get the hole but no seal marker
+    //     — they're not part of the playable keyboard for this level. ---
     for (let i = 0; i < layout.positions.length; i++) {
       const pos = positions[i];
-      if (!pos) continue;  // never happens — defensive parity with hit:visual
+      if (!pos) continue;
       drawHole(ctx, pos.x, pos.y);
-      drawStaticSeal(ctx, layout.positions[i], pos.x, pos.y, w);
+      if (poolSet.has(layout.positions[i].letter)) {
+        drawStaticSeal(ctx, layout.positions[i], pos.x, pos.y, w);
+      }
     }
 
     // --- Draw moles from sprite (only when atlas is loaded) ---
