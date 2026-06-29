@@ -13,7 +13,6 @@ import { showToast } from '@/ui/components/modal';
 import { checkAchievements, getAllRules, accumulateAchievementStats } from '@/achievements/engine';
 import { gameStore, achievementsStore, settingsStore } from '@/store';
 import { createAudioDirector } from '@/audio/audioDirector';
-import { HOLES_COLS, HOLES_ROWS } from '@/core/grid';
 
 export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const levelId = parseInt(ctx.query.level ?? '1', 10);
@@ -52,23 +51,22 @@ export function renderGame(root: HTMLElement, ctx: RouteContext): () => void {
   const bus = createEventBus();
   const tauntBubble = new TauntBubble();
   tauntBubble.mount(canvasMount);
-  const renderer = startRenderer({ canvas: gameCanvas, scene, level, bus });
+  const layout = scene.getHoleLayout();
+  const renderer = startRenderer({ canvas: gameCanvas, scene, level, bus, layout });
 
   const engine = new GameEngine({ scene, bus, level });
   const input = vkbMount
     ? setupInput(engine, vkbMount)
     : { unbind: () => {}, unsub: () => {} };
 
-  // Taunt positioning: position bubble at the mole's hole
+  // Taunt positioning: place bubble above the mole's static keyboard position.
   const unsubTaunt = bus.on('mole:taunt', (e) => {
     const w = canvasMount.clientWidth;
     const h = canvasMount.clientHeight;
-    const col = e.mole.holeIndex % HOLES_COLS;
-    const row = Math.floor(e.mole.holeIndex / HOLES_COLS);
-    const cellW = w / (HOLES_COLS + 1);
-    const cellH = (h * 0.45) / (HOLES_ROWS + 1);
-    const x = cellW * (col + 1);
-    const y = h * 0.58 + cellH * row - 60;
+    const pos = layout.positions[e.mole.holeIndex];
+    if (!pos) return;
+    const x = pos.xRatio * w;
+    const y = pos.yRatio * h - 60;
     tauntBubble.show(e.text, x, y, 550);
   });
 
