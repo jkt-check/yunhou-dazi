@@ -213,7 +213,10 @@ h3 { font-size: 1.25rem; }
 
 /* Canvas mount */
 .canvas-mount {
-  background: var(--color-paper-warm);
+  background-color: var(--color-paper);
+  background-image: var(--paper-texture);
+  background-size: var(--paper-texture-size);
+  background-repeat: repeat;
   border: 2px solid var(--color-ink);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -226,6 +229,7 @@ h3 { font-size: 1.25rem; }
   display: block;
   width: 100%;
   height: 100%;
+  background: transparent;
 }
 
 /* === Virtual Keyboard === */
