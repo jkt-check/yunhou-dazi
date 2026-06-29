@@ -6,12 +6,12 @@
   "moles": {
     "activeCount": 3,
     "spawnInterval": [800, 1500],
-    "stayTime": 2200
+    "stayTime": 4500
   },
   "sceneConfig": {
-    "pool": ["0","1","2","3","4","5","6","7","8","9"]
+    "pool": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9"]
   },
-  "difficulty": 2,
+  "difficulty": 3,
   "winCondition": { "type": "score", "target": 500 },
   "loseCondition": { "type": "misses", "max": 8 }
 }

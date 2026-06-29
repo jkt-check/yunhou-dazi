@@ -16,3 +16,8 @@ export function getLevel(id: number): LevelConfig | null {
 export function getAllLevels(): LevelConfig[] {
   return [...ALL_LEVELS];
 }
+
+/** All levels belonging to a given scene, preserving registration order. */
+export function getLevelsByScene(scene: string): LevelConfig[] {
+  return ALL_LEVELS.filter(l => l.scene === scene);
+}

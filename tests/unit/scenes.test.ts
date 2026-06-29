@@ -16,11 +16,11 @@ describe('letters scene', () => {
     expect(lettersScene.getDifficultyMultiplier()).toBe(1.0);
   });
 
-  it('provides a HoleLayout with 26 positions covering A-Z', () => {
+  it('provides a HoleLayout with 36 positions (10 digits + 26 letters)', () => {
     const layout = lettersScene.getHoleLayout();
-    expect(layout.positions).toHaveLength(26);
-    const letters = layout.positions.map(p => p.letter).sort();
-    expect(letters).toEqual('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+    expect(layout.positions).toHaveLength(36);
+    const chars = layout.positions.map(p => p.letter).sort();
+    expect(chars).toEqual('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
   });
 
   it('renderKey() draws seal badge + character without throwing', () => {
