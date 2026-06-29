@@ -94,6 +94,111 @@ h3 { font-size: 1.25rem; }
   box-shadow: var(--shadow-strong);
 }
 
+/* === Scene group (header + sub-levels disclosure) === */
+.scene-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-group .scene-btn {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.scene-group .scene-btn[aria-expanded="true"] {
+  border-color: var(--color-ochre);
+  box-shadow: var(--shadow-strong);
+}
+
+.scene-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scene-count {
+  font-size: 0.875rem;
+  color: var(--color-ink-muted);
+  font-weight: 700;
+}
+
+.scene-chevron {
+  display: inline-block;
+  font-size: 1rem;
+  color: var(--color-ochre);
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.scene-btn[aria-expanded="true"] .scene-chevron {
+  transform: rotate(180deg);
+}
+
+/* === Sub-levels panel === */
+.level-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0 4px 24px;
+  border-left: 2px dashed var(--color-ochre);
+  margin-left: 28px;
+  /* Animate in from a hidden state. [hidden] is honored by user agent
+     (display:none), so we toggle via JS only — no max-height tricks that
+     fight the hidden attribute. */
+}
+
+.level-list[hidden] {
+  display: none;
+}
+
+.level-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-paper-warm);
+  border: 1.5px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-ink);
+  font-size: 1rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 200ms;
+  animation: level-item-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.level-item:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-strong);
+}
+
+.level-item__num {
+  font-family: var(--font-key);
+  font-weight: 700;
+  color: var(--color-vermilion);
+  font-size: 0.95rem;
+}
+
+.level-item__name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.level-item__difficulty {
+  font-size: 0.85rem;
+  color: var(--color-ochre);
+  letter-spacing: 1px;
+}
+
+@keyframes level-item-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .scene-btn--locked {
   opacity: 0.5;
   cursor: not-allowed;
