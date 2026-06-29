@@ -24,7 +24,7 @@ const OUT_PNG = path.resolve(`public/sprites/${ROLE}.png`);
 const MANIFEST = path.resolve(`public/sprites/sprite-manifest.json`);
 
 // Per-role image prep
-const CROP_BOTTOM_RATIO = { monkey: 0.08, mole: 0.25 };
+const CROP_BOTTOM_RATIO = { monkey: 0.08, mole: 0.30 };
 async function prepFrame(inputPath) {
   const ratio = CROP_BOTTOM_RATIO[ROLE] ?? 0;
   let pipe = sharp(inputPath);

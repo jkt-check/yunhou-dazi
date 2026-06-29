@@ -6,13 +6,13 @@ must be appended to every state-specific pose.
 ## Style prefix
 
 ```
-Children's picture book illustration, flat color fills with hand-drawn ink outlines, soft warm palette, single character, white background, character centered in frame, 256x256 px.
+Children's picture book illustration, flat color fills with hand-drawn ink outlines, soft warm palette, single character, soft cream paper background (#F5EBD7) so the sprite blends with the game canvas, character centered in frame, 256x256 px.
 ```
 
 ## Negative
 
 ```
-realistic fur, vector graphic, low poly, 3D render, shading gradients, busy background, photorealistic, NSFW
+realistic fur, vector graphic, low poly, 3D render, shading gradients, busy background, photorealistic, NSFW, white background
 ```
 
 ## Character card
@@ -40,6 +40,6 @@ the same seed for all subsequent states of this character for consistency.
 mmx image generate \
   --prompt "<STYLE_PREFIX> <CHARACTER_CARD> <STATE_POSE>" \
   --negative "<NEGATIVE>" \
-  --width 256 --height 256 --seed <SEED> \
-  --output out/sprites/monkey/<state>-1.png
+  --width 512 --height 512 --seed <SEED> \
+  --out out/sprites/monkey/<state>-1.png
 ```

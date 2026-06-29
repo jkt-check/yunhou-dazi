@@ -134,7 +134,10 @@ export function startRenderer(opts: RendererOpts): () => void {
         drawMoleFromSprite(ctx, moleAtlas, moleSpriteAnim, x, y + yOffset);
 
         if (m.state === 'rising' || m.state === 'active') {
-          scene.renderKey(ctx, m.key, x, y - 50);
+          // The new sprite mole's head top is at worldY - 66 (anchor 220/256 * 0.30 scale).
+          // The key seal is a 44px-diameter circle; placing it at worldY - 100 puts its
+          // bottom edge ~7px above the head.
+          scene.renderKey(ctx, m.key, x, y - 100);
         }
       }
     } else {
