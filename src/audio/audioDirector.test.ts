@@ -121,12 +121,13 @@ describe('audioDirector', () => {
     d.stop();
   });
 
-  it('routes level:start to audio.startBgm + audio.startAmbient + audio.playStartJingle', () => {
+  it('routes level:start to audio.startBgm + audio.startAmbient + audio.playStartJingle + voice.speak("monkeyGreeting")', () => {
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'level:start', levelId: 1 });
     expect(audioMock.playStartJingle).toHaveBeenCalled();
     expect(audioMock.startBgm).toHaveBeenCalled();
     expect(audioMock.startAmbient).toHaveBeenCalled();
+    expect(voice.speak).toHaveBeenCalledWith('monkeyGreeting');
     d.stop();
   });
 
@@ -217,11 +218,15 @@ describe('audioDirector', () => {
     d.stop();
   });
 
-  it('does not resume ambient on game:resume when ambientEnabled is false', () => {
+  it('resumes ambient on game:resume (regression: was gated by ambientEnabled, leaving ambientGain stuck at 0 on toggle)', () => {
+    // Regression fix (review round 2): resumeAmbient used to be gated by
+    // `if (ambientOn())`. If the user toggled ambientEnabled OFF mid-pause
+    // and back ON, the resume never fired because the engine's resumeAmbient
+    // is a no-op when no ambient is playing, so we now always call it.
     settings = { get: () => ({ sfxEnabled: true, bgmEnabled: true, voiceEnabled: true, ambientEnabled: false }) };
     const d = createAudioDirector(bus, settings);
     bus.emit({ type: 'game:resume' });
-    expect(audioMock.resumeAmbient).not.toHaveBeenCalled();
+    expect(audioMock.resumeAmbient).toHaveBeenCalled();
     expect(audioMock.resumeBgm).toHaveBeenCalled();
     d.stop();
   });

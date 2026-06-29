@@ -81,6 +81,8 @@ export function createAudioDirector(
     if (sfxOn()) audio.playStartJingle();
     if (bgmOn()) audio.startBgm();
     if (ambientOn()) audio.startAmbient();
+    // New in v2 timing: opening greeting (5-line pool) — ceremony moment
+    if (voiceOn()) voice.speak('monkeyGreeting');
   }));
 
   unsubs.push(bus.on('level:complete', () => {
@@ -113,7 +115,12 @@ export function createAudioDirector(
 
   unsubs.push(bus.on('game:resume', () => {
     audio.resumeBgm();
-    if (ambientOn()) audio.resumeAmbient();
+    // Regression fix (review round 2): resume ambient unconditionally when
+    // there's a paused ambient layer (the audio engine no-ops if no ambient
+    // is playing, so we don't need to gate by ambientOn()). The previous
+    // version gated by ambientOn(), which left ambientGain stuck at 0 if the
+    // user toggled ambientEnabled mid-pause and back on.
+    audio.resumeAmbient();
     if (sfxOn()) audio.playResume();
   }));
 
@@ -136,6 +143,12 @@ export function createAudioDirector(
         const u = unsubs.pop();
         try { u?.(); } catch { /* swallow */ }
       }
+      // Regression fix (review round 2): stop() previously only cleared the
+      // low-life heartbeat. If the user clicked '← 返回' mid-level, BGM and
+      // ambient layers kept playing on the home page. Mirror level:complete
+      // / level:fail cleanup here so navigation always tears down audio.
+      audio.stopBgm();
+      audio.stopAmbient();
       audio.setLowLifeMode(false);
     }
   };
