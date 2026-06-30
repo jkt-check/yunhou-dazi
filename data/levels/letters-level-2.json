@@ -1,17 +1,17 @@
 {
   "id": 2,
   "scene": "letters",
-  "name": "全字母",
+  "name": "右手字母",
   "duration": 60,
   "moles": {
-    "activeCount": 3,
+    "activeCount": 2,
     "spawnInterval": [1000, 1800],
     "stayTime": 6000
   },
   "sceneConfig": {
-    "pool": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+    "pool": ["Y","U","I","O","P","H","J","K","L","N","M"]
   },
-  "difficulty": 2,
-  "winCondition": { "type": "score", "target": 350 },
+  "difficulty": 1,
+  "winCondition": { "type": "score", "target": 200 },
   "loseCondition": { "type": "misses", "max": 8 }
 }

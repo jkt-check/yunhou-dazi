@@ -1,17 +1,17 @@
 {
   "id": 3,
   "scene": "letters",
-  "name": "全键盘综合",
+  "name": "全字母",
   "duration": 60,
   "moles": {
     "activeCount": 3,
-    "spawnInterval": [800, 1500],
-    "stayTime": 4500
+    "spawnInterval": [1000, 1800],
+    "stayTime": 6000
   },
   "sceneConfig": {
-    "pool": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9"]
+    "pool": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
   },
-  "difficulty": 3,
-  "winCondition": { "type": "score", "target": 500 },
+  "difficulty": 2,
+  "winCondition": { "type": "score", "target": 350 },
   "loseCondition": { "type": "misses", "max": 8 }
 }
