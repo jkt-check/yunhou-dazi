@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Noto+Sans+SC:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import './fonts.css';
 @import './reset.css';
 @import './variables.css';
 @import './animations.css';
