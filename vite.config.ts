@@ -8,7 +8,10 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
+    // 'hidden' = generate .map files so error stack traces work locally / in
+    // staging, but don't publish the .map URL in the built JS. Production
+    // users never download them.
+    sourcemap: 'hidden',
     rollupOptions: existsSync('./src/audio/audioEngine.ts')
       ? {
           output: {
