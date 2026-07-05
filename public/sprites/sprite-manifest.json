@@ -1,6 +1,6 @@
 {
   "monkey": {
-    "atlas": "/sprites/monkey.png",
+    "atlas": "/sprites/monkey.webp",
     "frameSize": [
       256,
       256
@@ -43,7 +43,7 @@
     }
   },
   "mole": {
-    "atlas": "/sprites/mole.png",
+    "atlas": "/sprites/mole.webp",
     "frameSize": [
       256,
       256
