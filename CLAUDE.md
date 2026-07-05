@@ -49,7 +49,7 @@
 
 ### 4. 渲染层
 - `src/render/renderer.ts` 是 Canvas 主循环,订阅 `gameStore.recentHitKey` 触发猴子挥锤
-- 资源: `src/render/sprites/{monkey,mole,background}.ts` 都是程序化绘制 (无外部图片)
+- 资源: 猴子 + 地鼠从 **WebP atlas** (`public/sprites/{monkey,mole}.webp`,256×256 帧) 异步加载,通过 `loadSpriteManifest` + `loadAtlases` 注入。`src/render/sprites/{monkey,mole}.ts` 内的 `drawXxxFromSprite` 把 atlas 切片贴到 canvas;洞穴 (`drawHole`) 与背景 (`drawBackground`) 仍是程序化绘制
 - 颜色集中在 `src/render/palette.ts`,与 `variables.css` 同步
 - 网格常量在 `src/core/grid.ts` (HOLES_TOTAL=12, COLS=4, ROWS=3),render 与 spawner 共享
 - `src/render/canvas.ts` 处理 DPR 缩放 + resize 监听,必须返回带 `destroy()` 的句柄
@@ -79,10 +79,12 @@
   - 苔绿 moss `#5A8068` (草地)
   - 雾蓝 haze `#7BA7BC` (远山)
   - 蜜金 honey `#DAA520` (成就解锁)
-- **字体**:
+- **字体** (全部自托管,无 CDN 依赖):
   - `--font-display`: ZCOOL KuaiLe (中文手写标题)
   - `--font-display-en`: Fraunces (英文衬线)
+  - `--font-ui`: Noto Sans SC (中文正文)
   - `--font-key`: JetBrains Mono (等宽,字符清晰)
+- **字体文件**: `public/fonts/{family}/*.woff2`,由 `scripts/fetch-fonts.mjs` 自动下载并按代码中实际用到的字符子集生成 `src/styles/fonts.css`(Google Fonts 的 `text=` 模式)。增删页面文案后 `npm run fetch-fonts` 刷新
 - **印章字符**: 地鼠身上字符用圆形红章样式 (白底 + 朱砂字 + 朱砂环),见 `src/scenes/letters.ts:renderKey`
 - **弹性动画**: 全局 `cubic-bezier(0.34, 1.56, 0.64, 1)`,见 `animations.css`
 - **主题**: `[data-theme]` 三种 (default/sepia/ink),由 settings 页切换
@@ -99,7 +101,7 @@
 | 成就引擎 | `src/achievements/engine.ts` (数据驱动 + `accumulateAchievementStats` reducer) |
 | 网格常量 | `src/core/grid.ts` |
 | 渲染色板 | `src/render/palette.ts` |
-| 字符集 | `data/keysets.json` (结构化,目前未直接用 — 预留) |
+| 字体加载 | `scripts/fetch-fonts.mjs` + `src/styles/fonts.css` (生成) |
 | 音频引擎 | `src/audio/audioEngine.ts` |
 | 首页 | `src/pages/home.ts` (锁定场景用 `data-locked` + `addEventListener`) |
 | 游戏页 | `src/pages/game.ts` (集成 engine/renderer/input/audio/achievements) |
@@ -108,9 +110,10 @@
 ## 开发命令
 
 ```bash
-npm run dev      # http://localhost:5173
-npm run build    # tsc --noEmit + vite build
-npm test         # vitest run (当前 327 个测试)
+npm run dev          # http://localhost:5173
+npm run build        # tsc --noEmit + vite build + postbuild (.DS_Store 清理)
+npm run fetch-fonts  # 重新下载 woff2 + 重写 fonts.css (改了文案/加页面后跑)
+npm test             # vitest run (当前 327 个测试)
 ```
 
 ## 设计偏差(已收口)
